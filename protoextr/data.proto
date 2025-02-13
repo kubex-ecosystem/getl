@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package protoextr;
+
+option go_package = "mods/etl/protoextr";
+
+message Data {
+  map<string, string> fields = 1;
+}
+
+message DataList {
+  repeated Data data = 1;
+}
