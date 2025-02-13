@@ -17,13 +17,13 @@ func (m *GETl) Alias() string {
 // ShortDescription retorna uma descrição curta do módulo.
 // Retorna uma string contendo a descrição curta do módulo.
 func (m *GETl) ShortDescription() string {
-	return "GETl manager for data extraction, transformation, and loading."
+	return "GETl: Efficient manager for data extraction, transformation, and loading."
 }
 
 // LongDescription retorna uma descrição longa do módulo.
 // Retorna uma string contendo a descrição longa do módulo.
 func (m *GETl) LongDescription() string {
-	return "GETl manager for extracting, transforming, and loading data between different databases."
+	return "GETl is a comprehensive manager designed to streamline the processes of extracting, transforming, and loading data between various databases. It offers a robust and flexible solution for handling complex data workflows, ensuring seamless integration and efficient data management."
 }
 
 // Usage retorna a forma de uso do módulo.
@@ -35,7 +35,7 @@ func (m *GETl) Usage() string {
 // Examples retorna exemplos de uso do módulo.
 // Retorna um slice de strings contendo exemplos de uso do módulo.
 func (m *GETl) Examples() []string {
-	return []string{"kbx etl extract [source]", "kbx etl transform [data]", "kbx etl load [destination]"}
+	return []string{"getl extract [source]", "getl transform [data]", "getl load [destination]"}
 }
 
 // Active verifica se o módulo está ativo.
