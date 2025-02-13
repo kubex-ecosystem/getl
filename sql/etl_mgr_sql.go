@@ -379,7 +379,7 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 // checkMethod: método de verificação (opcional).
 // Retorna um erro, se houver.
 func ExecuteETL(configPath string, outputPath string, needCheck bool, checkMethod string) error {
-	_ = logz.InfoLog("Iniciando o processo de ETL", "etl", logz.QUIET)
+	_ = logz.InfoLog("Iniciando o processo de GETl", "etl", logz.QUIET)
 
 	// Carregar a configuração
 	config, loadConfigErr := LoadConfigFile(configPath)
@@ -407,7 +407,7 @@ func ExecuteETL(configPath string, outputPath string, needCheck bool, checkMetho
 		return logz.ErrorLog(fmt.Sprintf("falha ao carregar os dados no destino: %v", loadDataErr), "etl", logz.QUIET)
 	}
 
-	_ = logz.InfoLog("Processo de ETL finalizado com sucesso", "etl", logz.QUIET)
+	_ = logz.InfoLog("Processo de GETl finalizado com sucesso", "etl", logz.QUIET)
 
 	return nil
 }
@@ -434,22 +434,22 @@ func VacuumDatabase(dbPath string) error {
 // ExecuteETLJobs executa os trabalhos de ETL.
 // Retorna um erro, se houver.
 func ExecuteETLJobs() error {
-	_ = logz.InfoLog("Iniciando os trabalhos de ETL", "etl", logz.QUIET)
+	_ = logz.InfoLog("Iniciando os trabalhos de GETl", "etl", logz.QUIET)
 
 	jobsObj, jobsListErr := GetETLJobs()
 	if jobsListErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("falha ao buscar os trabalhos de ETL: %v", jobsListErr), "etl", logz.QUIET)
+		return logz.ErrorLog(fmt.Sprintf("falha ao buscar os trabalhos de GETl: %v", jobsListErr), "etl", logz.QUIET)
 	}
 
 	jobsList := jobsObj.GetJobs()
 	for _, job := range jobsList {
 		executeErr := ExecuteETL(job.Path(), job.OutputPath(), job.NeedCheck(), job.CheckMethod())
 		if executeErr != nil {
-			return logz.ErrorLog(fmt.Sprintf("falha ao executar o trabalho de ETL: %v", executeErr), "etl", logz.QUIET)
+			return logz.ErrorLog(fmt.Sprintf("falha ao executar o trabalho de GETl: %v", executeErr), "etl", logz.QUIET)
 		}
 	}
 
-	_ = logz.InfoLog("Trabalhos de ETL finalizados com sucesso", "etl", logz.QUIET)
+	_ = logz.InfoLog("Trabalhos de GETl finalizados com sucesso", "etl", logz.QUIET)
 
 	return nil
 }

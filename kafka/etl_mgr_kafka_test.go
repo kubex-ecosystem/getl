@@ -58,7 +58,7 @@ func TestRunETL(t *testing.T) {
 
 	// Executar o ETL
 	if err := RunETL(config, writer); err != nil {
-		t.Fatalf("falha ao executar o ETL: %v", err)
+		t.Fatalf("falha ao executar o GETl: %v", err)
 	}
 
 	// Verificar os resultados no Kafka

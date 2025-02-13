@@ -1,15 +1,10 @@
 package main
 
 import (
-	"fmt"
-	"github.com/faelmori/getl/cli"
+	"github.com/faelmori/getl/cmd"
 )
 
 func main() {
-	rootCmd := cli.RegX()
-	execErr := rootCmd.Execute()
-	if execErr != nil {
-		panic(fmt.Sprintf("Error executing command: %s", execErr.Error()))
-		return
-	}
+	rootCmd := cmd.RegX()
+	_ = rootCmd.Execute(nil)
 }
