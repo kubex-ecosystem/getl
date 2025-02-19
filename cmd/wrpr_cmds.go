@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	. "github.com/faelmori/kbx/mods/getl/etypes"
-	. "github.com/faelmori/kbx/mods/getl/sql"
-	. "github.com/faelmori/kbx/mods/getl/utils"
+	. "github.com/faelmori/getl/etypes"
+	. "github.com/faelmori/getl/sql"
+	. "github.com/faelmori/getl/utils"
 	"github.com/faelmori/kbx/mods/logz"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cobra"
@@ -136,8 +136,7 @@ func LoadCmd() *cobra.Command {
 // syncCmd cria um comando Cobra para executar as etapas extract, transform e load em sequência.
 // Retorna um ponteiro para o comando Cobra configurado.
 func SyncCmd() *cobra.Command {
-	var fileConfigPath string
-	var fileOutputPath string
+	var fileConfigPath, fileOutputPath, outputFormat string
 	var needCheck bool
 	var checkMethod string
 
@@ -150,12 +149,13 @@ func SyncCmd() *cobra.Command {
 			if validateArgsErr := ValidateArgs(fileConfigPath); validateArgsErr != nil {
 				return logz.ErrorLog(fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr), "etl", logz.QUIET)
 			}
-			return ExecuteETL(fileConfigPath, fileOutputPath, needCheck, checkMethod)
+			return ExecuteETL(fileConfigPath, fileOutputPath, outputFormat, needCheck, checkMethod)
 		},
 	}
 
 	sCmd.Flags().StringVarP(&fileConfigPath, "file", "f", "", "Caminho para o arquivo de configuração das transformações")
 	sCmd.Flags().StringVarP(&fileOutputPath, "output", "o", "", "Caminho para o arquivo de saída")
+	sCmd.Flags().StringVarP(&outputFormat, "format", "F", "json", "Formato de saída dos dados")
 	sCmd.Flags().BoolVarP(&needCheck, "check", "c", false, "Indica se é necessário realizar a verificação dos dados")
 	sCmd.Flags().StringVarP(&checkMethod, "method", "m", "", "Método de verificação dos dados")
 
@@ -177,7 +177,9 @@ func ProduceCmd() *cobra.Command {
 				Addr:  kafka.TCP(kafkaURL),
 				Topic: topic,
 			}
-			defer writer.Close()
+			defer func(writer *kafka.Writer) {
+				_ = writer.Close()
+			}(writer)
 
 			err := writer.WriteMessages(context.Background(), kafka.Message{
 				Value: []byte(message),

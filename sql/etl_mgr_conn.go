@@ -3,7 +3,7 @@ package sql
 import (
 	"database/sql"
 	"fmt"
-	. "github.com/faelmori/kbx/mods/getl/etypes"
+	. "github.com/faelmori/getl/etypes"
 	"time"
 )
 

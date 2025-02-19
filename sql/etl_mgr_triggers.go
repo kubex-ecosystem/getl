@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	. "github.com/faelmori/kbx/mods/getl/etypes"
+	. "github.com/faelmori/getl/etypes"
 	"text/template"
 )
 

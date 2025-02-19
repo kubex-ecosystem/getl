@@ -3,7 +3,7 @@ package etl
 import (
 	"database/sql"
 	"fmt"
-	"github.com/faelmori/kbx/mods/getl/meta"
+	"github.com/faelmori/getl/meta"
 	"time"
 )
 

@@ -1,7 +1,7 @@
 package extr
 
 import (
-	. "github.com/faelmori/kbx/mods/getl/etypes"
+	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/kbx/mods/logz"
 	"gopkg.in/yaml.v2"
 	"os"

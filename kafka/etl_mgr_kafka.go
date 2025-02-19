@@ -5,8 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	. "github.com/faelmori/kbx/mods/getl/etypes"
-	. "github.com/faelmori/kbx/mods/getl/sql"
+	. "github.com/faelmori/getl/etypes"
+	. "github.com/faelmori/getl/sql"
 	"github.com/faelmori/kbx/mods/logz"
 	"github.com/segmentio/kafka-go"
 )

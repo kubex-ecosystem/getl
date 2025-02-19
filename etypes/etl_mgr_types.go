@@ -40,6 +40,8 @@ type Config struct {
 	KafkaURL                    string           `json:"kafkaURL"`
 	KafkaTopic                  string           `json:"kafkaTopic"`
 	KafkaGroupID                string           `json:"kafkaGroupID"`
+	PrimaryKey                  string           `json:"primaryKey"`
+	UpdateKey                   string           `json:"updateKey"`
 }
 type Transformation struct {
 	SourceField      string `json:"sourceField"`
@@ -114,8 +116,11 @@ var vAendorMappingList = VendorSqlMappingList{
 		mapping: VendorSqlTypeMapList{
 			{"NUMBER", "NUMERIC", "NUMERIC"},
 			{"VARCHAR", "VARCHAR", "VARCHAR"},
+			{"NVARCHAR", "VARCHAR", "VARCHAR"},
+			{"CHAR", "TEXT", "TEXT"},
 			{"TEXT", "TEXT", "TEXT"},
 			{"INT", "INTEGER", "INTEGER"},
+			{"SMALLINT", "INTEGER", "INTEGER"},
 			{"DECIMAL", "NUMERIC", "NUMERIC"},
 			{"VARCHAR2", "VARCHAR", "VARCHAR"},
 			{"DATE", "DATE", "DATE"},
@@ -274,31 +279,33 @@ func (jl *VJobList) RemoveJob(job Job) {
 }
 
 type VJob struct {
-	VID          string `json:"id"`
-	VName        string `json:"name"`
-	VDescription string `json:"description"`
-	VConfig      Config `json:"config"`
-	VSchedule    string `json:"schedule"`
-	VLastRun     string `json:"lastRun"`
-	VNextRun     string `json:"nextRun"`
-	VOutputPath  string `json:"outputPath"`
-	VNeedCheck   bool   `json:"needCheck"`
-	VCheckMethod string `json:"checkMethod"`
-	VPath        string `json:"path"`
+	VID           string `json:"id"`
+	VName         string `json:"name"`
+	VDescription  string `json:"description"`
+	VConfig       Config `json:"config"`
+	VSchedule     string `json:"schedule"`
+	VLastRun      string `json:"lastRun"`
+	VNextRun      string `json:"nextRun"`
+	VOutputPath   string `json:"outputPath"`
+	VOutputFormat string `json:"outputFormat"`
+	VNeedCheck    bool   `json:"needCheck"`
+	VCheckMethod  string `json:"checkMethod"`
+	VPath         string `json:"path"`
 }
 
-func (j *VJob) Execute() error      { return nil }
-func (j *VJob) ID() string          { return j.VID }
-func (j *VJob) Name() string        { return j.VName }
-func (j *VJob) Description() string { return j.VDescription }
-func (j *VJob) Config() Config      { return j.VConfig }
-func (j *VJob) Schedule() string    { return j.VSchedule }
-func (j *VJob) LastRun() string     { return j.VLastRun }
-func (j *VJob) NextRun() string     { return j.VNextRun }
-func (j *VJob) OutputPath() string  { return j.VOutputPath }
-func (j *VJob) NeedCheck() bool     { return j.VNeedCheck }
-func (j *VJob) CheckMethod() string { return j.VCheckMethod }
-func (j *VJob) Path() string        { return j.VPath }
+func (j *VJob) Execute() error       { return nil }
+func (j *VJob) ID() string           { return j.VID }
+func (j *VJob) Name() string         { return j.VName }
+func (j *VJob) Description() string  { return j.VDescription }
+func (j *VJob) Config() Config       { return j.VConfig }
+func (j *VJob) Schedule() string     { return j.VSchedule }
+func (j *VJob) LastRun() string      { return j.VLastRun }
+func (j *VJob) NextRun() string      { return j.VNextRun }
+func (j *VJob) OutputPath() string   { return j.VOutputPath }
+func (j *VJob) OutputFormat() string { return j.VOutputFormat }
+func (j *VJob) NeedCheck() bool      { return j.VNeedCheck }
+func (j *VJob) CheckMethod() string  { return j.VCheckMethod }
+func (j *VJob) Path() string         { return j.VPath }
 
 type Job interface {
 	Execute() error
@@ -310,6 +317,7 @@ type Job interface {
 	LastRun() string
 	NextRun() string
 	OutputPath() string
+	OutputFormat() string
 	NeedCheck() bool
 	CheckMethod() string
 	Path() string

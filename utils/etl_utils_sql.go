@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/elgris/sqrl"
-	. "github.com/faelmori/kbx/mods/getl/etypes"
+	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/kbx/mods/logz"
 	"github.com/faelmori/kbx/mods/utils"
 	"maps"
@@ -18,10 +18,6 @@ import (
 	"strings"
 )
 
-// ApplyTransformations aplica transformações aos dados fornecidos.
-// data: os dados a serem transformados.
-// transformations: as transformações a serem aplicadas.
-// Retorna os dados transformados e um erro, se houver.
 func ApplyTransformations(data []Data, transformations []Transformation) ([]Data, error) {
 	if transformations == nil {
 		return data, nil
@@ -70,10 +66,6 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 
 	return transformedData, nil
 }
-
-// LoadFieldsFromTransformConfig carrega os campos a partir de um arquivo de configuração.
-// fileConfigPath: o caminho do arquivo de configuração.
-// Retorna os campos carregados e um erro, se houver.
 func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 	var config Config
 
@@ -119,11 +111,6 @@ func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 
 	return fields, nil
 }
-
-// BuilExtractdQuery constrói uma consulta SQL com base na configuração fornecida.
-// config: a configuração da consulta.
-// fields: os campos a serem selecionados.
-// Retorna a consulta SQL, os argumentos e um erro, se houver.
 func BuilExtractdQuery(config Config, fields []string) (string, []interface{}, error) {
 	query := sqrl.Select(fields...).From(config.SourceTable)
 
@@ -150,10 +137,6 @@ func BuilExtractdQuery(config Config, fields []string) (string, []interface{}, e
 
 	return query.ToSql()
 }
-
-// loadConfigFile carrega a configuração a partir de um arquivo JSON.
-// fileConfigPath: o caminho do arquivo de configuração.
-// Retorna a configuração carregada e um erro, se houver.
 func LoadConfigFile(fileConfigPath string) (Config, error) {
 	fileData, err := os.ReadFile(fileConfigPath)
 	if err != nil {
@@ -175,12 +158,6 @@ func LoadConfigFile(fileConfigPath string) (Config, error) {
 
 	return config, nil
 }
-
-// getDataTableHandlerFromQuery obtém um manipulador de tabela de dados a partir de uma consulta SQL.
-// sourceType: o tipo de banco de dados de origem.
-// sourceConnectionString: a string de conexão do banco de dados de origem.
-// sqlQuery: a consulta SQL a ser executada.
-// Retorna um manipulador de tabela de dados e um erro, se houver.
 func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery string) (*TableHandler, error) {
 	db, err := sql.Open(sourceType, sourceConnectionString)
 	if err != nil {
@@ -220,10 +197,6 @@ func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery s
 
 	return &TableHandler{Columns: columns, Data: data}, nil
 }
-
-// generateConfigTemplate gera um arquivo de template de configuração.
-// filePath: o caminho do arquivo de template a ser gerado.
-// Retorna um erro, se houver.
 func GenerateConfigTemplate(filePath string) error {
 	config := Config{
 		SourceType:                  "sqlite,postgres,mysql,oracle,sqlserver",
@@ -284,7 +257,6 @@ func GenerateConfigTemplate(filePath string) error {
 
 	return nil
 }
-
 func GetETLJobs() (JobList, error) {
 	cwd, cwdErr := utils.GetWorkDir()
 	if cwdErr != nil {
@@ -316,7 +288,6 @@ func GetETLJobs() (JobList, error) {
 
 	return &jobs, nil
 }
-
 func LoadJobFromFile(filePath string) (*VJob, error) {
 	fileData, fileDataErr := os.ReadFile(filePath)
 	if fileDataErr != nil {
