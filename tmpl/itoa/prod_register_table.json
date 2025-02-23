@@ -2,7 +2,7 @@
     "sourceType": "sqlserver",
     "sourceConnectionString": "sqlserver://sankhya:azsxdc@localhost:1433?database=sankhya_prod&encrypt=disable&trustservercertificate=true",
     "destinationType": "postgres",
-    "destinationConnectionString": "postgres://kubex_adm:WtWOZyYFYx@localhost:5432/kubex_db?sslmode=disable",
+    "destinationConnectionString": "postgres://kubex_adm:SyVLNzyJft@localhost:5432/kubex_db?sslmode=disable",
     "destinationTable": "erp_prod_register",
     "sqlQuery": "SELECT DISTINCT\n    (CASE WHEN MAR.AD_FASTREF = 'R' THEN LTRIM(RTRIM(PRO.REFFORN)) ELSE LTRIM(RTRIM(CAST(PRO.CODPROD AS VARCHAR))) END) AS ProductId,\n    1 AS IsAvailable,\n    2 AS StorageId,\n    'Bel Lub' AS StorageName,\n    21 AS ResellerId,\n    'Bel Lube' AS ResellerName,\n    1 AS ProductDefinitionId,\n    LTRIM(RTRIM(PRO.DESCRPROD)) AS ProductName,\n    (CASE WHEN ISNULL(EST.SALDO, 0) <= 0 THEN 0 ELSE EST.SALDO END) AS Quantity,\n    1 AS MinimumQuantity,\n    0 AS HandlingTime,\n    'false' IsExternalStockEnabled,\n    0 ExternalStockHandlingTime,\n    PRO.CODPROD,\n    PRO.CODVOL,\n    PRO.ORIGPROD,\n    PRO.CODMARCA\nFROM\n    TGFPRO PRO\n        INNER JOIN\n    TGFMAR MAR\n    ON PRO.CODMARCA = MAR.CODIGO\n        AND MAR.AD_FAST = 'S'\n        AND MAR.AD_FASTREF IN ('C', 'R')\n        LEFT JOIN\n    (\n        SELECT\n            EST.CODPROD\n             , SUM(EST.ESTOQUE - EST.RESERVADO) AS SALDO\n        FROM\n            TGFEST EST\n        WHERE\n            EST.CODEMP = 26\n          AND EST.CODLOCAL = '99000000'\n        GROUP BY\n            EST.CODPROD\n    ) EST\n    ON PRO.CODPROD = EST.CODPROD\n",
     "kafkaURL": "",
