@@ -1,0 +1,78 @@
+#file: noinspection YAMLIncompatibleTypes
+  language: go
+
+  # Define the Go versions you want to test
+  go:
+    - 1.20 # Or the latest version you use
+    - 1.23
+    - master
+
+  # Dependency cache to speed up builds
+  cache:
+    directories:
+      - $GOPATH/pkg
+      - $GOPATH/bin
+      - ~/.cache/go-build
+
+  # Define the environment variables you need
+  env:
+    global:
+      - GO111MODULE=on # Enable Go modules
+
+  # Install your project's dependencies
+  install:
+    - go mod download
+
+  # Run the tests
+  script:
+    - go test ./... -coverprofile=coverage.txt
+
+  # Check test coverage (optional)
+  after_success:
+    - bash <(curl -s https://codecov.io/bash)
+
+  # If the build is on a push to the "[GO] release" branch, deploy
+  branches:
+    only:
+      - "[GO] release"
+
+  deploy:
+    provider: releases
+    api_key: $GITHUB_TOKEN # Your GitHub token (encrypted)
+    name: v${TRAVIS_BUILD_NUMBER} # Release name (e.g., v123)
+    tag_name: v${TRAVIS_BUILD_NUMBER} # Tag name (e.g., v123)
+    # body: "Release description" # Release description (optional)
+    # draft: true # Set as draft (optional)
+    # prerelease: true # Set as pre-release (optional)
+
+  # Notifications (optional)
+  notifications:
+    email:
+      on_success: change
+      on_failure: always
+
+  # Other configurations (optional)
+  # matrix: # Allows testing in different environments
+  #   allow_failures:
+  #     - go: master
+  #   fast_finish: true # Cancels old builds if a new one starts
+
+  # File cleanup (optional)
+  # after_script:
+  #   - rm -rf $HOME/cache
+
+  # Allow Travis CI to cache the Go build directory
+  # before_cache:
+  #  - go clean -cache
+
+  # # Encrypt files
+  # addons:
+  #   ssh_known_hosts:
+  #     - "your_server_ssh_key"
+
+  # # Deploy to multiple environments
+  # deploy:
+  #   - provider: releases
+  #     # ... (deploy configurations for the first environment)
+  #   - provider: releases
+  #     # ... (deploy configurations for the second environment)
