@@ -2,7 +2,7 @@ package etypes
 
 import (
 	"fmt"
-	"github.com/faelmori/kbx/mods/logz"
+	"github.com/faelmori/logz"
 )
 
 const batchSize = 1000

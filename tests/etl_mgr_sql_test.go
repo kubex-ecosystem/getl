@@ -1,7 +1,7 @@
 package tests
 
 import (
-	"github.com/faelmori/kbx/mods/logz"
+	"github.com/faelmori/logz"
 	"github.com/goccy/go-json"
 	"os"
 	"testing"

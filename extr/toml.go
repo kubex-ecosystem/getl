@@ -2,7 +2,7 @@ package extr
 
 import (
 	. "github.com/faelmori/getl/etypes"
-	"github.com/faelmori/kbx/mods/logz"
+	"github.com/faelmori/logz"
 	"github.com/pelletier/go-toml/v2"
 	"os"
 )

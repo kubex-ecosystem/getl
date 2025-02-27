@@ -7,7 +7,7 @@ import (
 	"fmt"
 	. "github.com/faelmori/getl/etypes"
 	. "github.com/faelmori/getl/sql"
-	"github.com/faelmori/kbx/mods/logz"
+	"github.com/faelmori/logz"
 	"github.com/segmentio/kafka-go"
 )
 

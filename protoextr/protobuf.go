@@ -1,7 +1,7 @@
 package protoextr
 
 import (
-	"github.com/faelmori/kbx/mods/logz"
+	"github.com/faelmori/logz"
 	"google.golang.org/protobuf/proto"
 	"os"
 )
