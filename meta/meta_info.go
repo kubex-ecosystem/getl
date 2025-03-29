@@ -5,7 +5,8 @@ import (
 	"errors"
 	"fmt"
 	. "github.com/faelmori/getl/etypes"
-	"github.com/faelmori/kbx/mods/utils"
+	//"github.com/faelmori/kbx/mods/utils"
+	"github.com/faelmori/gkbxsrv/utils"
 )
 
 func CreateInternalSchema(db *sql.DB) error {

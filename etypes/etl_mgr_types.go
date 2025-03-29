@@ -14,6 +14,43 @@ type TableHandler struct {
 
 func (h *TableHandler) GetHeaders() []string { return h.Columns }
 func (h *TableHandler) GetRows() [][]string  { return h.Data }
+func (h *TableHandler) GetArrayMap() map[string][]string {
+	var result = make(map[string][]string)
+	for _, column := range h.Columns {
+		var columnData []string
+		for _, row := range h.Data {
+			columnData = append(columnData, row[0])
+		}
+		result[column] = columnData
+	}
+	return result
+}
+
+func (h *TableHandler) GetHashMap() map[string]string {
+	var result = make(map[string]string)
+	for _, column := range h.Columns {
+		result[column] = h.Data[0][0]
+	}
+	return result
+}
+func (h *TableHandler) GetObjectMap() []map[string]string {
+	var result []map[string]string
+	for _, row := range h.Data {
+		rowMap := make(map[string]string)
+		for i, column := range h.Columns {
+			rowMap[column] = row[i]
+		}
+		result = append(result, rowMap)
+	}
+	return result
+}
+func (h *TableHandler) GetByteMap() map[string][]byte {
+	var result = make(map[string][]byte)
+	for _, column := range h.Columns {
+		result[column] = []byte(h.Data[0][0])
+	}
+	return result
+}
 
 type Field map[string]string
 type Fields map[string][]Field
@@ -234,13 +271,13 @@ func GetVendorSqlTypeMap(driver string) VendorSqlTypeMapList {
 			return mapping.mapping
 		}
 	}
-	_ = logz.ErrorLog(fmt.Sprintf("No mapping found for driver %s", driver), "etl")
+	logz.Error(fmt.Sprintf("No mapping found for driver %s", driver), map[string]interface{}{})
 	return nil
 }
 func GetVendorSqlType(driver, sourceType string) string {
 	mapping := GetVendorSqlTypeMap(driver)
 	if mapping == nil {
-		_ = logz.ErrorLog(fmt.Sprintf("No mapping found for driver %s", driver), "etl")
+		logz.Error(fmt.Sprintf("No mapping found for driver %s", driver), map[string]interface{}{})
 		return ""
 	}
 	for _, mapItem := range mapping {
@@ -248,7 +285,7 @@ func GetVendorSqlType(driver, sourceType string) string {
 			return mapItem.targetType
 		}
 	}
-	_ = logz.ErrorLog(fmt.Sprintf("No mapping found for source type %s", sourceType), "etl")
+	logz.Error(fmt.Sprintf("No mapping found for source type %s", sourceType), map[string]interface{}{})
 	return ""
 }
 

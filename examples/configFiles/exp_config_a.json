@@ -1,0 +1,11 @@
+{
+  "sourceType": "godror",
+  "sourceConnectionString": "my_username/my_password@127.0.0.1:1521/orcl",
+  "destinationType": "sqlite3",
+  "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
+  "destinationTable": "erp_products",
+  "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
+  "kafkaURL": "",
+  "kafkaTopic": "",
+  "kafkaGroupID": ""
+}

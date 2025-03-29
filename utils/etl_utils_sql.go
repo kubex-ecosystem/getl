@@ -8,7 +8,8 @@ import (
 	"fmt"
 	"github.com/elgris/sqrl"
 	. "github.com/faelmori/getl/etypes"
-	"github.com/faelmori/kbx/mods/utils"
+	//"github.com/faelmori/kbx/mods/utils"
+	"github.com/faelmori/gkbxsrv/utils"
 	"github.com/faelmori/logz"
 	"maps"
 	"os"
@@ -69,21 +70,23 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 	var config Config
 
-	_ = logz.InfoLog("Loading fields from file: "+fileConfigPath, "etl", logz.QUIET)
+	logz.Info("Loading fields from file: "+fileConfigPath, map[string]interface{}{})
 	fileData, fileDataErr := os.ReadFile(fileConfigPath)
 	if fileDataErr != nil {
-		return nil, logz.ErrorLog("failed to load file: "+fileDataErr.Error(), "etl")
+		logz.Error("failed to load file: "+fileDataErr.Error(), map[string]interface{}{})
+		return nil, fileDataErr
 	}
-	_ = logz.InfoLog("File loaded successfully", "etl", logz.QUIET)
+	logz.Info("File loaded successfully", map[string]interface{}{})
 
-	_ = logz.InfoLog("Unmarshalling file data", "etl", logz.QUIET)
+	logz.Info("Unmarshalling file data", map[string]interface{}{})
 	unmarshalErr := json.Unmarshal(fileData, &config)
 	if unmarshalErr != nil {
-		return nil, logz.ErrorLog("334: "+unmarshalErr.Error(), "etl")
+		logz.Error("334: "+unmarshalErr.Error(), map[string]interface{}{})
+		return nil, unmarshalErr
 	}
-	_ = logz.InfoLog("File data unmarshalled successfully", "etl", logz.QUIET)
+	logz.Info("File data unmarshalled successfully", map[string]interface{}{})
 
-	_ = logz.InfoLog("Creating fields map", "etl", logz.QUIET)
+	logz.Info("Creating fields map", map[string]interface{}{})
 	var fields Fields
 
 	for _, t := range config.Transformations {
@@ -104,7 +107,7 @@ func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 		fields[t.DPath] = append(fields[t.DPath], Field{"name": t.DestinationField})
 	}
 
-	_ = logz.InfoLog("Fields map created successfully: "+config.SourceType+" -> "+config.DestinationType, "etl", logz.QUIET)
+	logz.Info("Fields map created successfully: "+config.SourceType+" -> "+config.DestinationType, map[string]interface{}{})
 	if maps.Values(fields) == nil {
 		return nil, errors.New("failed to create sourceFields map: " + config.SourceType)
 	}
@@ -260,13 +263,15 @@ func GenerateConfigTemplate(filePath string) error {
 func GetETLJobs() (JobList, error) {
 	cwd, cwdErr := utils.GetWorkDir()
 	if cwdErr != nil {
-		return nil, logz.ErrorLog("failed to get current working directory: "+cwdErr.Error(), "etl", logz.QUIET)
+		logz.Error("failed to get current working directory: "+cwdErr.Error(), map[string]interface{}{})
+		return nil, cwdErr
 	}
 	jobsCwd := filepath.Join(cwd, "jobs")
 
 	files, filesErr := os.ReadDir(jobsCwd)
 	if filesErr != nil {
-		return nil, logz.ErrorLog("failed to read jobs directory: "+filesErr.Error(), "etl", logz.QUIET)
+		logz.Error("failed to read jobs directory: "+filesErr.Error(), map[string]interface{}{})
+		return nil, filesErr
 	}
 
 	var jobs VJobList
@@ -278,7 +283,8 @@ func GetETLJobs() (JobList, error) {
 		filePath := filepath.Join(jobsCwd, file.Name())
 		job, jobErr := LoadJobFromFile(filePath)
 		if jobErr != nil {
-			return nil, logz.ErrorLog("failed to load job from file: "+jobErr.Error(), "etl", logz.QUIET)
+			logz.Error("failed to load job from file: "+jobErr.Error(), map[string]interface{}{})
+			return nil, jobErr
 		}
 
 		vJob := *job
@@ -291,12 +297,14 @@ func GetETLJobs() (JobList, error) {
 func LoadJobFromFile(filePath string) (*VJob, error) {
 	fileData, fileDataErr := os.ReadFile(filePath)
 	if fileDataErr != nil {
-		return nil, logz.ErrorLog("failed to load file: "+fileDataErr.Error(), "etl", logz.QUIET)
+		logz.Error("failed to load file: "+fileDataErr.Error(), map[string]interface{}{})
+		return nil, fileDataErr
 	}
 
 	var job VJob
 	if unmarshalErr := json.Unmarshal(fileData, &job); unmarshalErr != nil {
-		return nil, logz.ErrorLog("failed to unmarshal file data: "+unmarshalErr.Error(), "etl", logz.QUIET)
+		logz.Error("failed to unmarshal file data: "+unmarshalErr.Error(), map[string]interface{}{})
+		return nil, unmarshalErr
 	}
 
 	return &job, nil

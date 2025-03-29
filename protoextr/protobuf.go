@@ -21,12 +21,14 @@ func NewProtobufDataTable(data []*Data, filePath string) *ProtobufDataTable {
 func (e *ProtobufDataTable) LoadFile() error {
 	file, err := os.ReadFile(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to open file: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	var dataList DataList
 	if err := proto.Unmarshal(file, &dataList); err != nil {
-		return logz.ErrorLog("Failed to decode Protobuf: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to decode Protobuf: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	e.data = dataList.Data
@@ -42,11 +44,13 @@ func (e *ProtobufDataTable) ExtractFile() error {
 
 	data, err := proto.Marshal(dataList)
 	if err != nil {
-		return logz.ErrorLog("Failed to encode Protobuf: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to encode Protobuf: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	if err := os.WriteFile(e.filePath, data, 0644); err != nil {
-		return logz.ErrorLog("Failed to write file: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to write file: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	return nil

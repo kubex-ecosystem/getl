@@ -30,7 +30,7 @@ func CreateKafkaReader(kafkaURL, topic, groupID string) *kafka.Reader {
 func SyncData(config Config, kafkaReader *kafka.Reader) {
 	db, openErr := sql.Open(config.DestinationType, config.DestinationConnectionString)
 	if openErr != nil {
-		_ = logz.ErrorLog("erro ao conectar ao banco de dados de destino: "+openErr.Error(), "etl")
+		logz.Error("erro ao conectar ao banco de dados de destino: "+openErr.Error(), map[string]interface{}{})
 		return
 	}
 	defer db.Close()
@@ -38,18 +38,18 @@ func SyncData(config Config, kafkaReader *kafka.Reader) {
 	for {
 		msg, kafkaReaderErr := kafkaReader.ReadMessage(context.Background())
 		if kafkaReaderErr != nil {
-			_ = logz.ErrorLog("erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error(), "etl")
+			logz.Error("erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error(), map[string]interface{}{})
 			continue
 		}
 
 		var row = make(map[string]interface{})
 		if unmarshalErr := json.Unmarshal(msg.Value, &row); unmarshalErr != nil {
-			_ = logz.ErrorLog("erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error(), "etl")
+			logz.Error("erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error(), map[string]interface{}{})
 			continue
 		}
 
 		if loadDataErr := LoadData(db, config); loadDataErr != nil {
-			_ = logz.ErrorLog("erro ao carregar dados no banco de destino: "+loadDataErr.Error(), "etl")
+			logz.Error("erro ao carregar dados no banco de destino: "+loadDataErr.Error(), map[string]interface{}{})
 		}
 	}
 }

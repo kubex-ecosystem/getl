@@ -8,9 +8,10 @@ import (
 	_ "github.com/denisenkom/go-mssqldb"
 	. "github.com/faelmori/getl/etypes"
 	. "github.com/faelmori/getl/utils"
-	ui "github.com/faelmori/kbx/mods/ui/components"
-	"github.com/faelmori/kbx/mods/utils"
+	//ui "github.com/faelmori/kbx/mods/ui/components"
+	"github.com/faelmori/gkbxsrv/utils"
 	"github.com/faelmori/logz"
+	ui "github.com/faelmori/xtui/components"
 	"github.com/goccy/go-json"
 	_ "github.com/godror/godror"
 	_ "github.com/lib/pq"
@@ -76,7 +77,8 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.SourceType, config.SourceConnectionString)
 		if dbErr != nil {
-			return nil, nil, logz.ErrorLog("Failed to connect to source database: "+dbErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to connect to source database: "+dbErr.Error(), map[string]interface{}{})
+			return nil, nil, dbErr
 		}
 	} else {
 		db = dbSQL
@@ -85,7 +87,7 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 		_ = db.Close()
 	}(db)
 
-	_ = logz.InfoLog("Starting data extraction", "etl", logz.QUIET)
+	logz.Info("Starting data extraction", map[string]interface{}{})
 
 	var rows *sql.Rows
 	var SQLQueryArgs []interface{}
@@ -104,11 +106,12 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 		}
 		config.SQLQuery, SQLQueryArgs, buildQueryErr = BuilExtractdQuery(config, fields)
 		if buildQueryErr != nil {
-			return nil, nil, logz.ErrorLog("Failed to build query: "+buildQueryErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to build query: "+buildQueryErr.Error(), map[string]interface{}{})
+			return nil, nil, buildQueryErr
 		}
 	}
 
-	_ = logz.DebugLog("Running query: "+config.SQLQuery, "etl", logz.QUIET)
+	//logz.DebugLog("Running query: "+config.SQLQuery, map[string]interface{}{})
 
 	if len(SQLQueryArgs) > 0 {
 		rows, rowsErr = db.Query(config.SQLQuery, SQLQueryArgs...)
@@ -117,7 +120,8 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 	}
 
 	if rowsErr != nil {
-		return nil, nil, logz.ErrorLog("Failed on query execution: "+rowsErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed on query execution: "+rowsErr.Error(), map[string]interface{}{})
+		return nil, nil, rowsErr
 	}
 
 	defer func(rows *sql.Rows) {
@@ -127,12 +131,14 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 	var data []Data
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
-		return nil, nil, logz.ErrorLog("Failed to get columns: "+columnsErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to get columns: "+columnsErr.Error(), map[string]interface{}{})
+		return nil, nil, columnsErr
 	}
 
 	columnTypes, columnTypesErr := rows.ColumnTypes()
 	if columnTypesErr != nil {
-		return nil, nil, logz.ErrorLog("Failed trying to get column types: "+columnTypesErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed trying to get column types: "+columnTypesErr.Error(), map[string]interface{}{})
+		return nil, nil, columnTypesErr
 	}
 
 	columnTypeMap := make(map[string]string)
@@ -148,7 +154,8 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 		}
 
 		if scanErr := rows.Scan(rowPointers...); scanErr != nil {
-			return nil, nil, logz.ErrorLog("Failed to scan row data: "+scanErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to scan row data: "+scanErr.Error(), map[string]interface{}{})
+			return nil, nil, scanErr
 		}
 
 		row := make(Data)
@@ -162,7 +169,8 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 }
 func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]string) error {
 	if config.DestinationTable == "" {
-		return logz.ErrorLog("nome da tabela não informado", "etl", logz.QUIET)
+		logz.Error("nome da tabela não informado", map[string]interface{}{})
+		return fmt.Errorf("nome da tabela não informado")
 	}
 
 	var createTableQuery string
@@ -174,7 +182,8 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 			fieldType,
 		)
 		if typeName == "" {
-			return logz.ErrorLog(fmt.Sprintf("tipo de campo não mapeado: %s", fieldType), "etl", logz.QUIET)
+			logz.Error(fmt.Sprintf("tipo de campo não mapeado: %s", fieldType), map[string]interface{}{})
+			return fmt.Errorf("tipo de campo não mapeado: %s", fieldType)
 		}
 		if config.UpdateKey == fieldName {
 			createTableQuery += fmt.Sprintf("%s %s %s, ", fieldName, typeName, "PRIMARY KEY")
@@ -185,18 +194,20 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 	}
 	createTableQuery = createTableQuery[:len(createTableQuery)-2] + ")"
 
-	_ = logz.DebugLog("Campos de destino: "+config.DestinationType+" - "+fmt.Sprintf("%v", fieldsDest), "etl", logz.QUIET)
+	//logz.DebugLog("Campos de destino: "+config.DestinationType+" - "+fmt.Sprintf("%v", fieldsDest), map[string]interface{}{})
 
 	_, createTableQueryErr := db.Exec(createTableQuery)
 	if createTableQueryErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("falha ao criar a tabela: %v", createTableQueryErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("falha ao criar a tabela: %v", createTableQueryErr), map[string]interface{}{})
+		return createTableQueryErr
 	}
 
 	return nil
 }
 func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 	if config.SQLQuery == "" {
-		return nil, nil, logz.ErrorLog("query SQL não informada", "etl", logz.QUIET)
+		logz.Error("query SQL não informada", map[string]interface{}{})
+		return nil, nil, fmt.Errorf("query SQL não informada")
 	}
 
 	var db *sql.DB
@@ -204,7 +215,8 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.SourceType, config.SourceConnectionString)
 		if dbErr != nil {
-			return nil, nil, logz.ErrorLog(fmt.Sprintf("falha ao conectar ao banco de dados: %v", dbErr), "etl", logz.QUIET)
+			logz.Error(fmt.Sprintf("falha ao conectar ao banco de dados: %v", dbErr), map[string]interface{}{})
+			return nil, nil, dbErr
 		}
 	} else {
 		db = dbSQL
@@ -215,7 +227,8 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 
 	rows, queryErr := db.Query(config.SQLQuery)
 	if queryErr != nil {
-		return nil, nil, logz.ErrorLog(fmt.Sprintf("falha ao executar a query SQL: %v", queryErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("falha ao executar a query SQL: %v", queryErr), map[string]interface{}{})
+		return nil, nil, queryErr
 	}
 	defer func(rows *sql.Rows) {
 		_ = rows.Close()
@@ -224,7 +237,8 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 	var data []Data
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
-		return nil, nil, logz.ErrorLog(fmt.Sprintf("falha ao obter colunas: %v", columnsErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("falha ao obter colunas: %v", columnsErr), map[string]interface{}{})
+		return nil, nil, columnsErr
 	}
 
 	for rows.Next() {
@@ -235,7 +249,8 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 		}
 
 		if scanErr := rows.Scan(rowPointers...); scanErr != nil {
-			return nil, nil, logz.ErrorLog(fmt.Sprintf("falha ao escanear os dados da linha: %v", scanErr), "etl", logz.QUIET)
+			logz.Error(fmt.Sprintf("falha ao escanear os dados da linha: %v", scanErr), map[string]interface{}{})
+			return nil, nil, scanErr
 		}
 
 		row := make(Data)
@@ -248,7 +263,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 	if config.OutputPath != "" {
 		saveDataErr := SaveData(config.OutputPath, data, config.OutputFormat)
 		if saveDataErr != nil {
-			_ = logz.ErrorLog("Failed to save data: "+saveDataErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to save data: "+saveDataErr.Error(), map[string]interface{}{})
 		}
 	}
 
@@ -256,7 +271,8 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 }
 func SaveData(filePath string, data []Data, outputFormat string) error {
 	if filePath == "" {
-		return logz.ErrorLog("caminho do arquivo não informado", "etl", logz.QUIET)
+		logz.Error("caminho do arquivo não informado", map[string]interface{}{})
+		return fmt.Errorf("caminho do arquivo não informado")
 	}
 
 	if outputFormat == "" {
@@ -266,38 +282,46 @@ func SaveData(filePath string, data []Data, outputFormat string) error {
 	switch outputFormat {
 	case "json":
 		if saveDataErr := SaveDataToJSON(filePath, data); saveDataErr != nil {
-			return logz.ErrorLog("Failed to save data to JSON: "+saveDataErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to save data to JSON: "+saveDataErr.Error(), map[string]interface{}{})
+			return fmt.Errorf("Failed to save data to JSON: %w", saveDataErr)
 		}
 	case "yaml":
 		if saveDataErr := SaveDataToYAML(filePath, data); saveDataErr != nil {
-			return logz.ErrorLog("Failed to save data to YAML: "+saveDataErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to save data to YAML: "+saveDataErr.Error(), map[string]interface{}{})
+			return fmt.Errorf("Failed to save data to YAML: %w", saveDataErr)
 		}
 	case "xml":
 		if saveDataErr := SaveDataToXML(filePath, data); saveDataErr != nil {
-			return logz.ErrorLog("Failed to save data to XML: "+saveDataErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to save data to XML: "+saveDataErr.Error(), map[string]interface{}{})
+			return fmt.Errorf("Failed to save data to XML: %w", saveDataErr)
 		}
 	default:
-		return logz.ErrorLog("formato de saída inválido", "etl", logz.QUIET)
+		logz.Error("formato de saída inválido", map[string]interface{}{})
+		return fmt.Errorf("formato de saída inválido")
 	}
 
 	return nil
 }
 func SaveDataToXML(filePath string, data []Data) error {
 	if filePath == "" {
-		return logz.ErrorLog("caminho do arquivo não informado", "etl", logz.QUIET)
+		logz.Error("caminho do arquivo não informado", map[string]interface{}{})
+		return fmt.Errorf("caminho do arquivo não informado")
 	}
 
 	if len(data) == 0 {
-		return logz.ErrorLog("dados não informados", "etl", logz.QUIET)
+		logz.Error("dados não informados", map[string]interface{}{})
+		return fmt.Errorf("dados não informados")
 	}
 
 	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
-		return logz.ErrorLog("Failed to ensure file: "+ensureFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to ensure file: "+ensureFileErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to ensure file: %w", ensureFileErr)
 	}
 
 	file, openFileErr := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if openFileErr != nil {
-		return logz.ErrorLog("Failed to open file: "+openFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to open file: %w", openFileErr)
 	}
 
 	defer func(file *os.File) {
@@ -307,27 +331,32 @@ func SaveDataToXML(filePath string, data []Data) error {
 	encoder := xml.NewEncoder(file)
 
 	if encodeErr := encoder.Encode(data); encodeErr != nil {
-		return logz.ErrorLog("Failed to encode data: "+encodeErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to encode data: "+encodeErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to encode data: %w", encodeErr)
 	}
 
 	return nil
 }
 func SaveDataToYAML(filePath string, data []Data) error {
 	if filePath == "" {
-		return logz.ErrorLog("caminho do arquivo não informado", "etl", logz.QUIET)
+		logz.Error("caminho do arquivo não informado", map[string]interface{}{})
+		return fmt.Errorf("caminho do arquivo não informado")
 	}
 
 	if len(data) == 0 {
-		return logz.ErrorLog("dados não informados", "etl", logz.QUIET)
+		logz.Error("dados não informados", map[string]interface{}{})
+		return fmt.Errorf("dados não informados")
 	}
 
 	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
-		return logz.ErrorLog("Failed to ensure file: "+ensureFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to ensure file: "+ensureFileErr.Error(), map[string]interface{}{})
+		return ensureFileErr
 	}
 
 	file, openFileErr := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if openFileErr != nil {
-		return logz.ErrorLog("Failed to open file: "+openFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		return openFileErr
 	}
 
 	defer func(file *os.File) {
@@ -337,27 +366,32 @@ func SaveDataToYAML(filePath string, data []Data) error {
 	encoder := yaml.NewEncoder(file)
 
 	if encodeErr := encoder.Encode(data); encodeErr != nil {
-		return logz.ErrorLog("Failed to encode data: "+encodeErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to encode data: "+encodeErr.Error(), map[string]interface{}{})
+		return encodeErr
 	}
 
 	return nil
 }
 func SaveDataToJSON(filePath string, data []Data) error {
 	if filePath == "" {
-		return logz.ErrorLog("caminho do arquivo não informado", "etl", logz.QUIET)
+		logz.Error("caminho do arquivo não informado", map[string]interface{}{})
+		return fmt.Errorf("caminho do arquivo não informado")
 	}
 
 	if len(data) == 0 {
-		return logz.ErrorLog("dados não informados", "etl", logz.QUIET)
+		logz.Error("dados não informados", map[string]interface{}{})
+		return fmt.Errorf("dados não informados")
 	}
 
 	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
-		return logz.ErrorLog("Failed to ensure file: "+ensureFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to ensure file: "+ensureFileErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to ensure file: %w", ensureFileErr)
 	}
 
 	file, openFileErr := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if openFileErr != nil {
-		return logz.ErrorLog("Failed to open file: "+openFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to open file: %w", openFileErr)
 	}
 
 	defer func(file *os.File) {
@@ -367,7 +401,8 @@ func SaveDataToJSON(filePath string, data []Data) error {
 	encoder := json.NewEncoder(file)
 
 	if encodeErr := encoder.Encode(data); encodeErr != nil {
-		return logz.ErrorLog("Failed to encode data: "+encodeErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to encode data: "+encodeErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to encode data: %w", encodeErr)
 	}
 
 	return nil
@@ -379,7 +414,8 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.DestinationType, config.DestinationConnectionString)
 		if dbErr != nil {
-			return logz.ErrorLog("Failed to connect to destination database: "+dbErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to connect to destination database: "+dbErr.Error(), map[string]interface{}{})
+			return dbErr
 		}
 	} else {
 		db = dbSQL
@@ -394,7 +430,8 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 
 	data, fieldsWithType, fieldsErr = ExtractDataWithTypes(nil, config)
 	if fieldsErr != nil {
-		return logz.ErrorLog("Failed to extract data: "+fieldsErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to extract data: "+fieldsErr.Error(), map[string]interface{}{})
+		return fieldsErr
 	}
 
 	var fieldsDest map[string]string
@@ -405,7 +442,8 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 				if fieldType, ok := fieldsWithType[t.SourceField]; ok {
 					t.Type = fieldType
 				} else {
-					return logz.ErrorLog("Failed to get field type: "+t.SourceField, "etl", logz.QUIET)
+					logz.Error("Failed to get field type: "+t.SourceField, map[string]interface{}{})
+					return fmt.Errorf("Failed to get field type: %s", t.SourceField)
 				}
 			} else {
 				fieldsWithType[t.SourceField] = t.Type
@@ -422,23 +460,27 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 	}
 
 	if ensureTableExistsWithTypesErr := EnsureTableExistsWithTypes(db, config, fieldsDest); ensureTableExistsWithTypesErr != nil {
-		return logz.ErrorLog("Failed to ensure table exists: "+ensureTableExistsWithTypesErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to ensure table exists: "+ensureTableExistsWithTypesErr.Error(), map[string]interface{}{})
+		return ensureTableExistsWithTypesErr
 	}
 
 	transformedData, transformedDataErr := ApplyTransformations(data, config.Transformations)
 	if transformedDataErr != nil {
-		return logz.ErrorLog("Failed to apply transformations: "+transformedDataErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to apply transformations: "+transformedDataErr.Error(), map[string]interface{}{})
+		return transformedDataErr
 	}
 
 	if config.OutputPath != "" {
 		if saveDataErr := SaveData(config.OutputPath, transformedData, config.OutputFormat); saveDataErr != nil {
-			return logz.ErrorLog("Failed to save data: "+saveDataErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to save data: "+saveDataErr.Error(), map[string]interface{}{})
+			return saveDataErr
 		}
 	}
 
 	tx, txErr := db.Begin()
 	if txErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("Failed to start transaction: %v", txErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("Failed to start transaction: %v", txErr), map[string]interface{}{})
+		return fmt.Errorf("Failed to start transaction: %w", txErr)
 	}
 	var insertQuery string
 	for _, row := range transformedData {
@@ -480,27 +522,30 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 		_, err := db.Exec(insertQuery)
 		if err != nil {
 			_ = tx.Rollback()
-			_ = logz.DebugLog(fmt.Sprintf("Failed to execute insert query: %v", insertQuery), "etl", logz.QUIET)
-			return logz.ErrorLog("Failed to execute insert query: "+err.Error(), "etl", logz.QUIET)
+			//logz.DebugLog(fmt.Sprintf("Failed to execute insert query: %v", insertQuery), map[string]interface{}{})
+			logz.Error("Failed to execute insert query: "+err.Error(), map[string]interface{}{})
+			return fmt.Errorf("Failed to execute insert query: %w", err)
 		}
 	}
 
 	if commitErr := tx.Commit(); commitErr != nil {
-		_ = logz.DebugLog(fmt.Sprintf("Failed to commit insertion: %v", insertQuery), "etl", logz.QUIET)
-		return logz.ErrorLog("Failed to commit transaction: "+commitErr.Error(), "etl", logz.QUIET)
+		//logz.DebugLog(fmt.Sprintf("Failed to commit insertion: %v", insertQuery), map[string]interface{}{})
+		logz.Error("Failed to commit transaction: "+commitErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("Failed to commit transaction: %w", commitErr)
 	}
 
-	_ = logz.InfoLog("Dados carregados no banco de destino com sucesso", "etl", logz.QUIET)
+	logz.Info("Dados carregados no banco de destino com sucesso", map[string]interface{}{})
 
 	return nil
 }
 func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, checkMethod string) error {
-	_ = logz.InfoLog("Iniciando o processo de GETl", "etl", logz.QUIET)
+	logz.Info("Iniciando o processo de GETl", map[string]interface{}{})
 
 	// Carregar a configuração
 	config, loadConfigErr := LoadConfigFile(configPath)
 	if loadConfigErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("falha ao carregar a configuração: %v", loadConfigErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("falha ao carregar a configuração: %v", loadConfigErr), map[string]interface{}{})
+		return loadConfigErr
 	}
 
 	// Carregar os dados no banco de destino
@@ -516,17 +561,19 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 		if checkMethod != "" {
 			config.CheckMethod = checkMethod
 		} else {
-			return logz.ErrorLog("método de verificação não informado", "etl", logz.QUIET)
+			logz.Error("método de verificação não informado", map[string]interface{}{})
+			return fmt.Errorf("método de verificação não informado")
 		}
 	}
 
 	// Extrair os dados, transformar e carregar no destino
 	loadDataErr := LoadData(nil, config)
 	if loadDataErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("falha ao carregar os dados no destino: %v", loadDataErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("falha ao carregar os dados no destino: %v", loadDataErr), map[string]interface{}{})
+		return loadConfigErr
 	}
 
-	_ = logz.InfoLog("Processo de GETl finalizado com sucesso", "etl", logz.QUIET)
+	logz.Info("Processo de GETl finalizado com sucesso", map[string]interface{}{})
 
 	return nil
 }
@@ -544,26 +591,28 @@ func VacuumDatabase(dbPath string) error {
 		return fmt.Errorf("falha ao executar VACUUM: %w", err)
 	}
 
-	_ = logz.InfoLog("VACUUM executado com sucesso", "etl", logz.QUIET)
+	logz.Info("VACUUM executado com sucesso", map[string]interface{}{})
 	return nil
 }
 func ExecuteETLJobs() error {
-	_ = logz.InfoLog("Iniciando os trabalhos de GETl", "etl", logz.QUIET)
+	logz.Info("Iniciando os trabalhos de GETl", map[string]interface{}{})
 
 	jobsObj, jobsListErr := GetETLJobs()
 	if jobsListErr != nil {
-		return logz.ErrorLog(fmt.Sprintf("falha ao buscar os trabalhos de GETl: %v", jobsListErr), "etl", logz.QUIET)
+		logz.Error(fmt.Sprintf("falha ao buscar os trabalhos de GETl: %v", jobsListErr), map[string]interface{}{})
+		return jobsListErr
 	}
 
 	jobsList := jobsObj.GetJobs()
 	for _, job := range jobsList {
 		executeErr := ExecuteETL(job.Path(), job.OutputPath(), job.OutputFormat(), job.NeedCheck(), job.CheckMethod())
 		if executeErr != nil {
-			return logz.ErrorLog(fmt.Sprintf("falha ao executar o trabalho de GETl: %v", executeErr), "etl", logz.QUIET)
+			logz.Error(fmt.Sprintf("falha ao executar o trabalho de GETl: %v", executeErr), map[string]interface{}{})
+			return executeErr
 		}
 	}
 
-	_ = logz.InfoLog("Trabalhos de GETl finalizados com sucesso", "etl", logz.QUIET)
+	logz.Info("Trabalhos de GETl finalizados com sucesso", map[string]interface{}{})
 
 	return nil
 }

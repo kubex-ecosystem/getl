@@ -2,6 +2,7 @@ package extr
 
 import (
 	"encoding/xml"
+	"fmt"
 	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/logz"
 	"os"
@@ -41,20 +42,23 @@ func (e *XMLDataTable) LoadFile() error {
 	var openFileErr error
 
 	if _, err := os.Stat(e.filePath); err != nil {
-		return logz.ErrorLog("File not found: "+e.filePath, "etl", logz.QUIET)
+		logz.Error("File not found: "+e.filePath, map[string]interface{}{})
+		return err
 	} else {
 		openFile, openFileErr = os.Open(e.filePath)
 	}
 
 	if openFileErr != nil {
-		return logz.ErrorLog("Failed to open file: "+openFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		return openFileErr
 	}
 	defer openFile.Close()
 	decoder := xml.NewDecoder(openFile)
 
 	var xmlData XMLData
 	if decodeErr := decoder.Decode(&xmlData); decodeErr != nil {
-		return logz.ErrorLog("Failed to decode data: "+decodeErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to decode data: "+decodeErr.Error(), map[string]interface{}{})
+		return decodeErr
 	}
 
 	for _, xmlRow := range xmlData.Rows {
@@ -89,14 +93,16 @@ func (e *XMLDataTable) ExtractFile() error {
 
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to create file: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 	defer file.Close()
 
 	encoder := xml.NewEncoder(file)
 	encoder.Indent("", "  ")
 	if err := encoder.Encode(xmlData); err != nil {
-		return logz.ErrorLog("Failed to write XML: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to write XML: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	return nil
@@ -104,7 +110,8 @@ func (e *XMLDataTable) ExtractFile() error {
 
 func (e *XMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if len(filter) == 0 {
@@ -120,7 +127,8 @@ func (e *XMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	return e.filteredData, nil
@@ -128,11 +136,13 @@ func (e *XMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *XMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid index", "etl", logz.QUIET)
+		logz.Error("Invalid index", map[string]interface{}{})
+		return nil, fmt.Errorf("Invalid index")
 	}
 
 	return e.data[index], nil
@@ -140,11 +150,13 @@ func (e *XMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *XMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid range", "etl", logz.QUIET)
+		logz.Error("Invalid range", map[string]interface{}{})
+		return nil, fmt.Errorf("Invalid range")
 	}
 
 	return e.data[start:end], nil
@@ -152,7 +164,8 @@ func (e *XMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *XMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	var filteredData []Data
@@ -163,7 +176,8 @@ func (e *XMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	}
 
 	if len(filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	return filteredData, nil

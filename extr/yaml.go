@@ -1,6 +1,7 @@
 package extr
 
 import (
+	"fmt"
 	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/logz"
 	"gopkg.in/yaml.v2"
@@ -23,13 +24,15 @@ func NewYAMLDataTable(data []Data, filePath string) *YAMLDataTable {
 func (e *YAMLDataTable) LoadFile() error {
 	file, err := os.Open(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to open file: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 	defer file.Close()
 
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&e.data); err != nil {
-		return logz.ErrorLog("Failed to decode YAML: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to decode YAML: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	return nil
@@ -42,7 +45,8 @@ func (e *YAMLDataTable) LoadData(data []Data) {
 func (e *YAMLDataTable) ExtractFile() error {
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to create file: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 	defer file.Close()
 
@@ -50,7 +54,8 @@ func (e *YAMLDataTable) ExtractFile() error {
 	defer encoder.Close()
 
 	if err := encoder.Encode(e.data); err != nil {
-		return logz.ErrorLog("Failed to encode YAML: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to encode YAML: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 
 	return nil
@@ -58,7 +63,8 @@ func (e *YAMLDataTable) ExtractFile() error {
 
 func (e *YAMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if len(filter) == 0 {
@@ -74,7 +80,8 @@ func (e *YAMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	return e.filteredData, nil
@@ -82,11 +89,13 @@ func (e *YAMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *YAMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid index", "etl", logz.QUIET)
+		logz.Error("Invalid index", map[string]interface{}{})
+		return nil, fmt.Errorf("invalid index")
 	}
 
 	return e.data[index], nil
@@ -94,11 +103,13 @@ func (e *YAMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *YAMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid range", "etl", logz.QUIET)
+		logz.Error("Invalid range", map[string]interface{}{})
+		return nil, fmt.Errorf("invalid range")
 	}
 
 	return e.data[start:end], nil
@@ -106,7 +117,8 @@ func (e *YAMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *YAMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	var filteredData []Data
@@ -117,7 +129,8 @@ func (e *YAMLDataTable) ExtractDataByField(field, value string) ([]Data, error) 
 	}
 
 	if len(filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	return filteredData, nil

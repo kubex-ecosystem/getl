@@ -1,6 +1,7 @@
 package extr
 
 import (
+	"fmt"
 	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/logz"
 	"github.com/pelletier/go-toml/v2"
@@ -23,13 +24,13 @@ func NewTOMLDataTable(data []Data, filePath string) *TOMLDataTable {
 func (e *TOMLDataTable) LoadFile() error {
 	file, err := os.Open(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to open file: "+err.Error(), "etl", logz.QUIET)
+		return err //logz.Error("Failed to open file: "+err.Error(), map[string]interface{}{})
 	}
 	defer file.Close()
 
 	decoder := toml.NewDecoder(file)
 	if err := decoder.Decode(&e.data); err != nil {
-		return logz.ErrorLog("Failed to decode TOML: "+err.Error(), "etl", logz.QUIET)
+		return err //logz.Error("Failed to decode TOML: "+err.Error(), map[string]interface{}{})
 	}
 
 	return nil
@@ -42,13 +43,13 @@ func (e *TOMLDataTable) LoadData(data []Data) {
 func (e *TOMLDataTable) ExtractFile() error {
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to create file: "+err.Error(), "etl", logz.QUIET)
+		return err //logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
 	}
 	defer file.Close()
 
 	encoder := toml.NewEncoder(file)
 	if err := encoder.Encode(e.data); err != nil {
-		return logz.ErrorLog("Failed to encode TOML: "+err.Error(), "etl", logz.QUIET)
+		return err //logz.Error("Failed to encode TOML: "+err.Error(), map[string]interface{}{})
 	}
 
 	return nil
@@ -56,7 +57,8 @@ func (e *TOMLDataTable) ExtractFile() error {
 
 func (e *TOMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if len(filter) == 0 {
@@ -72,7 +74,8 @@ func (e *TOMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	return e.filteredData, nil
@@ -80,11 +83,13 @@ func (e *TOMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *TOMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid index", "etl", logz.QUIET)
+		logz.Error("Invalid index", map[string]interface{}{})
+		return nil, fmt.Errorf("Invalid index")
 	}
 
 	return e.data[index], nil
@@ -92,11 +97,13 @@ func (e *TOMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *TOMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid range", "etl", logz.QUIET)
+		logz.Error("Invalid range", map[string]interface{}{})
+		return nil, fmt.Errorf("Invalid range")
 	}
 
 	return e.data[start:end], nil
@@ -104,7 +111,8 @@ func (e *TOMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *TOMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	var filteredData []Data
@@ -115,7 +123,8 @@ func (e *TOMLDataTable) ExtractDataByField(field, value string) ([]Data, error) 
 	}
 
 	if len(filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	return filteredData, nil

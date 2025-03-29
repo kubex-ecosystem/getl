@@ -2,6 +2,7 @@ package extr
 
 import (
 	"encoding/csv"
+	"fmt"
 	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/logz"
 	"os"
@@ -25,19 +26,22 @@ func (e *CSVDataTable) LoadFile() error {
 	var openFileErr error
 
 	if _, err := os.Stat(e.filePath); err != nil {
-		return logz.ErrorLog("File not found: "+e.filePath, "etl", logz.QUIET)
+		logz.Error("File not found: "+e.filePath, map[string]interface{}{})
+		return err
 	} else {
 		openFile, openFileErr = os.Open(e.filePath)
 	}
 
 	if openFileErr != nil {
-		return logz.ErrorLog("Failed to open file: "+openFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		return openFileErr
 	}
 	defer openFile.Close()
 	reader := csv.NewReader(openFile)
 	records, readErr := reader.ReadAll()
 	if readErr != nil {
-		return logz.ErrorLog("Failed to read CSV: "+readErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to read CSV: "+readErr.Error(), map[string]interface{}{})
+		return readErr
 	}
 
 	for i, row := range records {
@@ -61,7 +65,8 @@ func (e *CSVDataTable) LoadData(data []Data) {
 func (e *CSVDataTable) ExtractFile() error {
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		return logz.ErrorLog("Failed to create file: "+err.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
+		return err
 	}
 	defer file.Close()
 
@@ -73,7 +78,8 @@ func (e *CSVDataTable) ExtractFile() error {
 		headers = append(headers, key)
 	}
 	if writerErr := writer.Write(headers); writerErr != nil {
-		return logz.ErrorLog("Failed to write headers to CSV: "+writerErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to write headers to CSV: "+writerErr.Error(), map[string]interface{}{})
+		return writerErr
 	}
 	for _, row := range e.data {
 		var rowData []string
@@ -86,7 +92,8 @@ func (e *CSVDataTable) ExtractFile() error {
 		}
 
 		if writerRowsErr := writer.Write(rowData); writerRowsErr != nil {
-			return logz.ErrorLog("Failed to write row to CSV: "+writerRowsErr.Error(), "etl", logz.QUIET)
+			logz.Error("Failed to write row to CSV: "+writerRowsErr.Error(), map[string]interface{}{})
+			return writerRowsErr
 		}
 	}
 	return nil
@@ -94,7 +101,8 @@ func (e *CSVDataTable) ExtractFile() error {
 
 func (e *CSVDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if len(filter) == 0 {
@@ -110,7 +118,8 @@ func (e *CSVDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	return e.filteredData, nil
@@ -118,11 +127,13 @@ func (e *CSVDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *CSVDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid index", "etl", logz.QUIET)
+		logz.Error("Invalid index", map[string]interface{}{})
+		return nil, fmt.Errorf("Invalid index")
 	}
 
 	return e.data[index], nil
@@ -130,11 +141,13 @@ func (e *CSVDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *CSVDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid range", "etl", logz.QUIET)
+		logz.Error("Invalid range", map[string]interface{}{})
+		return nil, fmt.Errorf("Invalid range")
 	}
 
 	return e.data[start:end], nil
@@ -142,7 +155,8 @@ func (e *CSVDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *CSVDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	var filteredData []Data
@@ -153,7 +167,8 @@ func (e *CSVDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	}
 
 	if len(filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("No data to extract")
 	}
 
 	return filteredData, nil

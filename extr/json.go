@@ -2,6 +2,7 @@ package extr
 
 import (
 	"encoding/json"
+	"fmt"
 	. "github.com/faelmori/getl/etypes"
 	"github.com/faelmori/logz"
 	"os"
@@ -25,19 +26,22 @@ func (e *JSONDataTable) LoadFile() error {
 	var openFileErr error
 
 	if _, err := os.Stat(e.filePath); err != nil {
-		return logz.ErrorLog("File not found: "+e.filePath, "etl", logz.QUIET)
+		logz.Error("File not found: "+e.filePath, map[string]interface{}{})
+		return err
 	} else {
 		openFile, openFileErr = os.Open(e.filePath)
 	}
 
 	if openFileErr != nil {
-		return logz.ErrorLog("Failed to open file: "+openFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		return openFileErr
 	}
 	defer openFile.Close()
 	decoder := json.NewDecoder(openFile)
 
 	if decodeErr := decoder.Decode(&e.data); decodeErr != nil {
-		return logz.ErrorLog("Failed to decode data: "+decodeErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to decode data: "+decodeErr.Error(), map[string]interface{}{})
+		return decodeErr
 	}
 
 	return nil
@@ -52,24 +56,28 @@ func (e *JSONDataTable) ExtractFile() error {
 	var createFileErr error
 
 	if len(e.data) == 0 {
-		return logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return fmt.Errorf("no data to extract")
 	}
 
 	if _, err := os.Stat(e.filePath); err == nil {
-		return logz.ErrorLog("File already exists: "+e.filePath, "etl", logz.QUIET)
+		logz.Error("File already exists: "+e.filePath, map[string]interface{}{})
+		return fmt.Errorf("file already exists")
 	} else {
 		createFile, createFileErr = os.Create(e.filePath)
 	}
 
 	if createFileErr != nil {
-		return logz.ErrorLog("Failed to create file: "+createFileErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to create file: "+createFileErr.Error(), map[string]interface{}{})
+		return fmt.Errorf("failed to create file: %s", createFileErr.Error())
 	}
 	defer createFile.Close()
 	encoder := json.NewEncoder(createFile)
 	encoder.SetIndent("", "  ")
 
 	if encodeErr := encoder.Encode(e.data); encodeErr != nil {
-		return logz.ErrorLog("Failed to encode data: "+encodeErr.Error(), "etl", logz.QUIET)
+		logz.Error("Failed to encode data: "+encodeErr.Error(), map[string]interface{}{})
+		return encodeErr
 	}
 
 	return nil
@@ -77,7 +85,8 @@ func (e *JSONDataTable) ExtractFile() error {
 
 func (e *JSONDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if len(filter) == 0 {
@@ -93,7 +102,8 @@ func (e *JSONDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	return e.filteredData, nil
@@ -101,11 +111,13 @@ func (e *JSONDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *JSONDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid index", "etl", logz.QUIET)
+		logz.Error("Invalid index", map[string]interface{}{})
+		return nil, fmt.Errorf("invalid index")
 	}
 
 	return e.data[index], nil
@@ -113,11 +125,13 @@ func (e *JSONDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *JSONDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		return nil, logz.ErrorLog("Invalid range", "etl", logz.QUIET)
+		logz.Error("Invalid range", map[string]interface{}{})
+		return nil, fmt.Errorf("invalid range")
 	}
 
 	return e.data[start:end], nil
@@ -125,7 +139,8 @@ func (e *JSONDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *JSONDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	var filteredData []Data
@@ -136,7 +151,8 @@ func (e *JSONDataTable) ExtractDataByField(field, value string) ([]Data, error) 
 	}
 
 	if len(filteredData) == 0 {
-		return nil, logz.ErrorLog("No data to extract", "etl", logz.QUIET)
+		logz.Error("No data to extract", map[string]interface{}{})
+		return nil, fmt.Errorf("no data to extract")
 	}
 
 	return filteredData, nil

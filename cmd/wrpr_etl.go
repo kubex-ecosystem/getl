@@ -80,10 +80,14 @@ func (m *GETl) concatenateExamples() string {
 // Retorna um ponteiro para o comando cobra configurado.
 func (m *GETl) Command() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:         m.Module(),
-		Aliases:     []string{m.Alias(), "e", "etl", "et"},
-		Example:     m.concatenateExamples(),
-		Annotations: m.getDescriptions(nil, true),
+		Use:     m.Module(),
+		Aliases: []string{m.Alias(), "e", "etl", "et"},
+		Example: m.concatenateExamples(),
+		Annotations: m.getDescriptions(
+			[]string{
+				"This is a efficient sync manager for almost any database, any environment and any data source. \nYou can vizualize before, after, when you want and how you want.\nYou will extract, transform and load data from almost any source to almost any destination.\nSweet yourself with many flavors... Enjoy!",
+				"Sync manager for almost any database, any environment and any data source.",
+			}, true),
 	}
 	cmd.AddCommand(SyncCmd())
 	cmd.AddCommand(ExtractCmd())
@@ -93,6 +97,16 @@ func (m *GETl) Command() *cobra.Command {
 	cmd.AddCommand(DataTableCmd())
 	cmd.AddCommand(VacuumCmd())
 	setUsageDefinition(cmd)
+
+	for _, c := range cmd.Commands() {
+		setUsageDefinition(c)
+		if !strings.Contains(strings.Join(os.Args, " "), c.Use) {
+			if c.Short == "" {
+				c.Short = c.Annotations["description"]
+			}
+		}
+	}
+
 	return cmd
 }
 func (m *GETl) getDescriptions(descriptionArg []string, hideBanner bool) map[string]string {
@@ -111,7 +125,8 @@ func (m *GETl) getDescriptions(descriptionArg []string, hideBanner bool) map[str
 		}
 	}
 	//if !hideBanner {
-	banner = ` ______      ______________ 
+	banner = `
+   ______      ______________ 
   / ____/     / ____/_  __/ / 
  / / ________/ __/   / / / /  
 / /_/ /_____/ /___  / / / /___

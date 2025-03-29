@@ -1,0 +1,72 @@
+{
+  "sourceType": "sqlserver",
+  "sourceConnectionString": "sqlserver://username:password@localhost:1433?database=my_db_test&encrypt=disable&trustservercertificate=true",
+  "sourceTable": "erp_products",
+  "sourceTablePrimaryKey": "CODPROD",
+  "sqlQuery": "",
+  "destinationType": "godror",
+  "destinationConnectionString": "username/password@127.0.0.1:1521/orcl",
+  "destinationTable": "erp_products_teste",
+    "destinationTablePrimaryKey": "id_v",
+  "kafkaURL": "",
+  "kafkaTopic": "",
+  "kafkaGroupID": "",
+  "transformations": [
+    {
+      "sourceField": "CODPROD",
+      "destinationField": "id_v",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "PRODDESCR",
+      "destinationField": "name_v",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "GROUPPRODDESCR",
+      "destinationField": "depart_v",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "ACTIVE",
+      "destinationField": "active",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "STOCK",
+      "destinationField": "stock",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "RESERVED",
+      "destinationField": "reserved",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "BALANCE",
+      "destinationField": "balance",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    },
+    {
+      "sourceField": "PRICE",
+      "destinationField": "price",
+      "operation": "none",
+      "sPath": "erp_products",
+      "dPath": "erp_products_teste"
+    }
+  ]
+}
