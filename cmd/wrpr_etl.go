@@ -1,6 +1,7 @@
-package cmd
+package main
 
 import (
+	"github.com/faelmori/getl/version"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
@@ -96,8 +97,10 @@ func (m *GETl) Command() *cobra.Command {
 	cmd.AddCommand(ConsumeCmd())
 	cmd.AddCommand(DataTableCmd())
 	cmd.AddCommand(VacuumCmd())
-	setUsageDefinition(cmd)
+	cmd.AddCommand(version.CliCommand())
 
+	// Set usage definitions for the command and its subcommands
+	setUsageDefinition(cmd)
 	for _, c := range cmd.Commands() {
 		setUsageDefinition(c)
 		if !strings.Contains(strings.Join(os.Args, " "), c.Use) {

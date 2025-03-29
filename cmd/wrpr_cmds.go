@@ -1,4 +1,4 @@
-package cmd
+package main
 
 import (
 	"context"
@@ -14,7 +14,7 @@ import (
 	"os"
 )
 
-// vacuumCmd cria um comando Cobra para executar a limpeza de registros de uma tabela.
+// VacuumCmd cria um comando Cobra para executar a limpeza de registros de uma tabela.
 // Retorna um ponteiro para o comando Cobra configurado.
 func VacuumCmd() *cobra.Command {
 	var dbFilePath string
@@ -40,7 +40,7 @@ func VacuumCmd() *cobra.Command {
 	return cmd
 }
 
-// extractCmd cria um comando Cobra para extrair dados de uma fonte.
+// ExtractCmd cria um comando Cobra para extrair dados de uma fonte.
 // Retorna um ponteiro para o comando Cobra configurado.
 func ExtractCmd() *cobra.Command {
 	var fileConfigPath, fileOutputPath, fileOutputFormat string

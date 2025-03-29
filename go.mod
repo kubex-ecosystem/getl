@@ -8,7 +8,7 @@ require (
 	github.com/elgris/sqrl v0.0.0-20210727210741-7e0198b30236
 	github.com/faelmori/gkbxsrv v1.0.6
 	github.com/faelmori/logz v1.1.5
-	github.com/faelmori/xtui v1.1.2
+	github.com/faelmori/xtui v1.1.4
 	github.com/fatih/color v1.18.0
 	github.com/go-sql-driver/mysql v1.9.1
 	github.com/goccy/go-json v0.10.5
@@ -80,5 +80,3 @@ require (
 	golang.org/x/text v0.23.0 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 )
-
-//replace github.com/faelmori/kbx => ../kubex/_lib/kbx
