@@ -1,0 +1,145 @@
+//This is just an example (non functional) of a configuration file for the OPT_METHODS_EXAMPLE.json file
+//   It is used to configure the source and destination databases, as well as the transformations to be applied.
+//   The source and destination can be any of the following:
+//   - sqlite
+//   - sqlite3
+//
+//   - godror
+//   - oracle
+//
+//   - postgres
+//   - postgresql
+//
+//   - mongodb
+//
+//   - mysql
+//   - mariadb
+//
+//   - sqlServer
+//   - mssql
+//
+//   - kafka
+//   - redis
+//   - CSV
+//   - JSON
+//   - XML
+//   - YAML
+//   - TOML
+//   - PDF
+//   - XLSX/XLS
+//   - HTML
+//   - TXT
+//
+//   - Pipe-like outputs/inputs
+//
+//
+//   You can read more about the configuration file in the documentation:
+//   https://github.com/faelmori/getl/README.md#configuration-file
+//
+//   Here goes the example of the configuration file that you can use like a reference to create your own firsts configuration files.
+
+[
+  { // One way to use the OPT_METHODS_EXAMPLE.json file
+    "sourceType": "godror",
+    "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
+    "destinationType": "sqlite3",
+    "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
+    "destinationTable": "erp_products",
+    "destinationTablePrimaryKey": "CODPARC",
+    "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
+    "outputFormat": "csv",
+    "outputPath": "/home/user/Documents/erp_products.csv",
+    "needCheck": true,
+    "checkMethod": "SELECT * FROM erp_products WHERE CODPARC = ? AND NOMEPARC = ?", // Some checks to be done before insert the data in the destination table
+    "kafkaURL": "",
+    "kafkaTopic": "",
+    "kafkaGroupID": ""
+  },
+
+  { // Another way to use the OPT_METHODS_EXAMPLE.json file with interval for continuous sync process
+    "sourceType": "godror",
+    "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
+    "destinationType": "sqlite3",
+    "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
+    "destinationTable": "erp_products",
+    "destinationTablePrimaryKey": "CODPARC",
+    "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
+    "syncInterval": "30 * * * * *", // every 30 seconds
+    "kafkaURL": "",
+    "kafkaTopic": "",
+    "kafkaGroupID": ""
+  },
+
+  { // Another way to use the OPT_METHODS_EXAMPLE.json file
+    "sourceType": "sqlite3",
+    "sourceConnectionString": "/home/user/.kubex/web/gorm.db",
+    "sourceTable": "erp_products",
+    "sourceTablePrimaryKey": "CODPROD",
+    "sqlQuery": "",
+    "destinationType": "sqlServer",
+    "destinationConnectionString": "sqlserver://username:password@localhost:1433?database=my_db_test&encrypt=disable&trustservercertificate=true",
+    "destinationTable": "erp_products_test",
+    "destinationTablePrimaryKey": "id_v",
+    "kafkaURL": "",
+    "kafkaTopic": "",
+    "kafkaGroupID": "",
+    "transformations": [
+      {
+        "sourceField": "CODPROD",
+        "destinationField": "id_v",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "PRODDESCR",
+        "destinationField": "name_v",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "GROUPPRODDESCR",
+        "destinationField": "depart_v",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "ACTIVE",
+        "destinationField": "active",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "STOCK",
+        "destinationField": "stock",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "RESERVED",
+        "destinationField": "reserved",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "BALANCE",
+        "destinationField": "balance",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      },
+      {
+        "sourceField": "PRICE",
+        "destinationField": "price",
+        "operation": "none",
+        "sPath": "erp_products",
+        "dPath": "erp_products_test"
+      }
+    ]
+  }
+]
