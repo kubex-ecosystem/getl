@@ -1,4 +1,4 @@
-APP_NAME := getl
+APP_NAME := $(shell basename $(shell pwd))
 ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 BINARY_NAME := $(ROOT_DIR)$(APP_NAME)
 CMD_DIR := $(ROOT_DIR)cmd
@@ -67,22 +67,6 @@ test:
 	$(call break, b )
 	$(call success, Tests completed successfully)
 
-# Run unit tests
-unit-test:
-	$(call log, Running unit tests)
-	$(call break, b )
-	@go test ./cmd/cli/server_test.go -v || exit 1
-	$(call break, b )
-	$(call success, Unit tests completed successfully)
-
-# Run integration tests
-integration-test:
-	$(call log, Running integration tests)
-	$(call break, b )
-	@go test ./cmd/cli/integration_test.go -v || exit 1
-	$(call break, b )
-	$(call success, Integration tests completed successfully)
-
 # Display this help message
 help:
 	$(call log, $(APP_NAME) Makefile )
@@ -96,8 +80,6 @@ help:
 	$(call log,   make install    - Install the binary and configure environment)
 	$(call log,   make clean      - Clean up build artifacts)
 	$(call log,   make test       - Run tests)
-	$(call log,   make unit-test  - Run unit tests)
-	$(call log,   make integration-test - Run integration tests)
 	$(call log,   make help       - Display this help message)
 	$(call break, b )
 	$(call log, Usage with arguments: )
@@ -109,6 +91,6 @@ help:
 	$(call log, $(APP_NAME) is a tool for managing Kubernetes resources)
 	$(call break, b )
 	$(call log, For more information, visit: )
-	$(call log, 'https://github.com/faelmori/getl' )
+	$(call log, 'https://github.com/faelmori/'$(APP_NAME))
 	$(call break, b )
 	$(call success, End of help message)
