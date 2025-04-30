@@ -21,11 +21,11 @@ func loadOpts() (*Opts, error) {
 	if OptsImpl == nil {
 		file, fileErr := os.ReadFile("./config_test.json")
 		if fileErr != nil {
-			return nil, logz.Error("erro ao ler arquivo de configuração: "+fileErr.Error(), "Getl")
+			return nil, logz.ErrorCtx("erro ao ler arquivo de configuração: "+fileErr.Error(), "Getl")
 		}
 		OptsImplErr := json.Unmarshal(file, &OptsImpl)
 		if OptsImplErr != nil {
-			return nil, logz.Error("erro ao decodificar arquivo de configuração: "+OptsImplErr.Error(), "Getl")
+			return nil, logz.ErrorCtx("erro ao decodificar arquivo de configuração: "+OptsImplErr.Error(), "Getl")
 		}
 	}
 	return OptsImpl, nil
