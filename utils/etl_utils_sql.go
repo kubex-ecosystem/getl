@@ -6,17 +6,20 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/elgris/sqrl"
 	. "github.com/faelmori/getl/etypes"
-	//"github.com/faelmori/kbx/mods/utils"
-	"github.com/faelmori/gkbxsrv/utils"
-	"github.com/faelmori/logz"
+
+	//"github.com/faelmori/kbx/mods/utils "
 	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
+
+	"github.com/faelmori/gkbxsrv/utils"
+	"github.com/faelmori/logz"
 )
 
 func ApplyTransformations(data []Data, transformations []Transformation) ([]Data, error) {
