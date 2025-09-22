@@ -9,3 +9,63 @@
 /tmpl/exp_etl_sales_config.json
 /tmpl/exp_local_products_config.json
 /.idea/
+
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of the go coverage tool
+*.coverprofile
+
+# Dependency directories (remove the comment below if you use Go modules)
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# IDE/editor files
+.vscode/
+.idea/
+*.swp
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Python virtual environments (if present)
+venv/
+__pycache__/
+*.pyc
+
+# Node modules (if using JS tooling)
+node_modules/
+.venv/
+.env
+*_linux_amd64
+*_linux_amd64.tar.gz
+
+*/prompt/*.md
+*/prompt/**/*.md
+*/prompt/*.sh
+*/prompt/**/*.sh
+*/prompt/*.txt
+*/prompt/**/*.txt
+*/prompt/*.go
+*/prompt/**/*.go
+*/prompt/*.py
+*/prompt/**/*.py
+dist/*
+.codex/
+.notes/
+.kubex/
+.claude/
+CLAUDE.md
