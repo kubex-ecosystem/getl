@@ -1,0 +1,45 @@
+{
+  "sourceType": "mysql",
+  "sourceConnectionString": "user:password@tcp(localhost:3306)/crm_database",
+  "sourceTable": "leads",
+  "destinationType": "sqlite3",
+  "destinationConnectionString": "/analytics/crm_leads.db",
+  "destinationTable": "leads_warehouse",
+  "primaryKey": "lead_id",
+  "outputFormat": "json",
+  "outputPath": "/exports/new_leads.json",
+
+  "incrementalSync": {
+    "enabled": true,
+    "strategy": "primary_key",
+    "stateFile": "/state/crm-leads-sync.json"
+  },
+
+  "transformations": [
+    {
+      "sourceField": "lead_id",
+      "destinationField": "id",
+      "operation": "none"
+    },
+    {
+      "sourceField": "first_name",
+      "destinationField": "name",
+      "operation": "none"
+    },
+    {
+      "sourceField": "email_address",
+      "destinationField": "email",
+      "operation": "none"
+    },
+    {
+      "sourceField": "lead_score",
+      "destinationField": "score",
+      "operation": "none"
+    },
+    {
+      "sourceField": "source_campaign",
+      "destinationField": "campaign",
+      "operation": "none"
+    }
+  ]
+}

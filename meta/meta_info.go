@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	//"github.com/faelmori/kbx/mods/utils"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+
+	//"github.com/kubex-ecosystem/kbx/mods/utils"
 	"github.com/faelmori/gkbxsrv/utils"
 )
 

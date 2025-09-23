@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	s "github.com/faelmori/getl/sql"
-	"github.com/faelmori/logz"
-	"github.com/segmentio/kafka-go"
 	"sync"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+	s "github.com/kubex-ecosystem/getl/sql"
+	"github.com/kubex-ecosystem/logz"
+	"github.com/segmentio/kafka-go"
 )
 
 type IKafka interface {

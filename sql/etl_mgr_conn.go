@@ -3,8 +3,9 @@ package sql
 import (
 	"database/sql"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
 	"time"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
 )
 
 // connectDB estabelece uma conexão com o banco de dados especificado na configuração.

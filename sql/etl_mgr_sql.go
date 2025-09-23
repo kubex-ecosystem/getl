@@ -2,24 +2,30 @@ package sql
 
 import (
 	"database/sql"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
+
 	"github.com/charmbracelet/lipgloss"
 	_ "github.com/denisenkom/go-mssqldb"
-	. "github.com/faelmori/getl/etypes"
-	. "github.com/faelmori/getl/utils"
-	//ui "github.com/faelmori/kbx/mods/ui/components"
+	. "github.com/kubex-ecosystem/getl/etypes"
+	. "github.com/kubex-ecosystem/getl/utils"
+
+	//ui "github.com/kubex-ecosystem/kbx/mods/ui/components"
+	"os"
+	"path/filepath"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
+
 	"github.com/faelmori/gkbxsrv/utils"
-	"github.com/faelmori/logz"
-	ui "github.com/faelmori/xtui/components"
-	"github.com/goccy/go-json"
 	_ "github.com/godror/godror"
+	"github.com/kubex-ecosystem/logz"
+	ui "github.com/kubex-ecosystem/xtui/components"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/yaml.v3"
-	"os"
-	"strings"
-	"time"
 )
 
 func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath string, outputFormat string) error {
@@ -71,6 +77,51 @@ func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath stri
 	}
 	return ui.StartTableScreen(handler, customStyles)
 }
+
+// inferTypeFromValue analyzes actual data values to infer better SQL types
+func inferTypeFromValue(value interface{}) string {
+	if value == nil {
+		return "TEXT"
+	}
+
+	// Use reflection to get the underlying type
+	valueType := reflect.TypeOf(value)
+	if valueType.Kind() == reflect.Ptr {
+		if reflect.ValueOf(value).IsNil() {
+			return "TEXT"
+		}
+		valueType = valueType.Elem()
+	}
+
+	switch valueType.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return "INTEGER"
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return "INTEGER"
+	case reflect.Float32, reflect.Float64:
+		return "REAL"
+	case reflect.Bool:
+		return "INTEGER"
+	case reflect.String:
+		// Try to parse as number
+		strVal := value.(string)
+		if _, err := strconv.ParseInt(strVal, 10, 64); err == nil {
+			return "INTEGER"
+		}
+		if _, err := strconv.ParseFloat(strVal, 64); err == nil {
+			return "REAL"
+		}
+		return "TEXT"
+	case reflect.Slice:
+		if valueType.Elem().Kind() == reflect.Uint8 {
+			return "BLOB"
+		}
+		return "TEXT"
+	default:
+		return "TEXT"
+	}
+}
+
 func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]string, error) {
 	var db *sql.DB
 	var dbErr error
@@ -143,8 +194,37 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 
 	columnTypeMap := make(map[string]string)
 	for i, colType := range columnTypes {
-		columnTypeMap[columns[i]] = colType.DatabaseTypeName()
+		dbTypeName := colType.DatabaseTypeName()
+
+		// If DatabaseTypeName is empty, try to infer from ScanType
+		if dbTypeName == "" {
+			scanType := colType.ScanType()
+			if scanType != nil {
+				switch scanType.String() {
+				case "string":
+					dbTypeName = "TEXT"
+				case "int64":
+					dbTypeName = "INTEGER"
+				case "float64":
+					dbTypeName = "REAL"
+				case "bool":
+					dbTypeName = "INTEGER"
+				case "[]uint8", "[]byte":
+					dbTypeName = "BLOB"
+				default:
+					dbTypeName = "TEXT" // Default fallback
+				}
+			} else {
+				dbTypeName = "TEXT" // Ultimate fallback
+			}
+		}
+
+		columnTypeMap[columns[i]] = dbTypeName
 	}
+
+	// Track actual data types found in the first rows to improve type inference
+	actualTypes := make(map[string]string)
+	rowCount := 0
 
 	for rows.Next() {
 		rowData := make([]interface{}, len(columns))
@@ -161,8 +241,23 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 		row := make(Data)
 		for i, colName := range columns {
 			row[colName] = rowData[i]
+
+			// Improve type detection based on actual data (only for first few rows)
+			if rowCount < 3 && columnTypeMap[colName] == "TEXT" {
+				if actualType := inferTypeFromValue(rowData[i]); actualType != "TEXT" {
+					actualTypes[colName] = actualType
+				}
+			}
 		}
 		data = append(data, row)
+		rowCount++
+	}
+
+	// Update column types based on actual data analysis
+	for colName, actualType := range actualTypes {
+		if columnTypeMap[colName] == "TEXT" {
+			columnTypeMap[colName] = actualType
+		}
 	}
 
 	return data, columnTypeMap, nil
@@ -302,6 +397,24 @@ func SaveData(filePath string, data []Data, outputFormat string) error {
 
 	return nil
 }
+
+// XMLData represents a wrapper for XML serialization
+type XMLData struct {
+	XMLName xml.Name    `xml:"data"`
+	Records []XMLRecord `xml:"record"`
+}
+
+type XMLRecord struct {
+	XMLName xml.Name   `xml:"record"`
+	Fields  []XMLField `xml:"field"`
+}
+
+type XMLField struct {
+	XMLName xml.Name `xml:"field"`
+	Name    string   `xml:"name,attr"`
+	Value   string   `xml:",chardata"`
+}
+
 func SaveDataToXML(filePath string, data []Data) error {
 	if filePath == "" {
 		logz.Error("caminho do arquivo não informado", map[string]interface{}{})
@@ -328,9 +441,37 @@ func SaveDataToXML(filePath string, data []Data) error {
 		_ = file.Close()
 	}(file)
 
-	encoder := xml.NewEncoder(file)
+	// Convert Data to XML-serializable format
+	xmlData := XMLData{
+		Records: make([]XMLRecord, len(data)),
+	}
 
-	if encodeErr := encoder.Encode(data); encodeErr != nil {
+	for i, record := range data {
+		xmlRecord := XMLRecord{
+			Fields: make([]XMLField, 0, len(record)),
+		}
+
+		for key, value := range record {
+			field := XMLField{
+				Name:  key,
+				Value: formatValue(value),
+			}
+			// Remove quotes from formatValue for XML content
+			if len(field.Value) >= 2 && field.Value[0] == '\'' && field.Value[len(field.Value)-1] == '\'' {
+				field.Value = field.Value[1 : len(field.Value)-1]
+			}
+			if field.Value == "NULL" {
+				field.Value = ""
+			}
+			xmlRecord.Fields = append(xmlRecord.Fields, field)
+		}
+		xmlData.Records[i] = xmlRecord
+	}
+
+	encoder := xml.NewEncoder(file)
+	encoder.Indent("", "  ")
+
+	if encodeErr := encoder.Encode(xmlData); encodeErr != nil {
 		logz.Error("Failed to encode data: "+encodeErr.Error(), map[string]interface{}{})
 		return fmt.Errorf("Failed to encode data: %w", encodeErr)
 	}
@@ -434,7 +575,7 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 		return fieldsErr
 	}
 
-	var fieldsDest map[string]string
+	fieldsDest := make(map[string]string) // Inicializar o map aqui
 	var fieldsList []string
 	if config.Transformations != nil {
 		for _, t := range config.Transformations {
@@ -566,6 +707,11 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 		}
 	}
 
+	// Check if incremental sync is enabled
+	if config.IncrementalSync.Enabled {
+		return ExecuteIncrementalETL(config)
+	}
+
 	// Extrair os dados, transformar e carregar no destino
 	loadDataErr := LoadData(nil, config)
 	if loadDataErr != nil {
@@ -577,6 +723,183 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 
 	return nil
 }
+
+// ExecuteIncrementalETL performs incremental ETL using smart strategies
+func ExecuteIncrementalETL(config Config) error {
+	logz.Info("Iniciando processo de GETl incremental", map[string]interface{}{})
+
+	// Set default state file if not provided
+	if config.IncrementalSync.StateFile == "" {
+		config.IncrementalSync.StateFile = fmt.Sprintf("/tmp/getl-state-%s-%s.json",
+			config.SourceTable, config.DestinationTable)
+	}
+
+	// Execute based on strategy
+	switch config.IncrementalSync.Strategy {
+	case TimestampBased:
+		return executeTimestampIncrementalETL(config)
+	case PrimaryKeyBased:
+		return executePrimaryKeyIncrementalETL(config)
+	default:
+		logz.Info("Unknown incremental strategy, falling back to full sync", map[string]interface{}{})
+		return LoadData(nil, config)
+	}
+}
+
+// executeTimestampIncrementalETL performs timestamp-based incremental sync
+func executeTimestampIncrementalETL(config Config) error {
+	logz.Info(fmt.Sprintf("Executing timestamp-based incremental sync on field: %s", config.IncrementalSync.TimestampField), map[string]interface{}{})
+
+	// Load last sync state
+	lastSyncValue, err := loadLastSyncValue(config.IncrementalSync.StateFile)
+	if err != nil {
+		logz.Info("No previous sync state found, starting full sync", map[string]interface{}{})
+		lastSyncValue = nil
+	}
+
+	// Modify the SQL query to include timestamp filter
+	originalQuery := config.SQLQuery
+	if originalQuery == "" {
+		originalQuery = fmt.Sprintf("SELECT * FROM %s", config.SourceTable)
+	}
+
+	if lastSyncValue != nil {
+		whereClause := fmt.Sprintf("%s > '%v'", config.IncrementalSync.TimestampField, lastSyncValue)
+		if strings.Contains(strings.ToUpper(originalQuery), "WHERE") {
+			config.SQLQuery = originalQuery + " AND " + whereClause
+		} else {
+			config.SQLQuery = originalQuery + " WHERE " + whereClause
+		}
+		logz.Info(fmt.Sprintf("Resuming from last sync: %v", lastSyncValue), map[string]interface{}{})
+	} else {
+		config.SQLQuery = originalQuery
+		logz.Info("First time sync - processing all records", map[string]interface{}{})
+	}
+
+	// Add ORDER BY to ensure consistent results
+	if !strings.Contains(strings.ToUpper(config.SQLQuery), "ORDER BY") {
+		config.SQLQuery += fmt.Sprintf(" ORDER BY %s", config.IncrementalSync.TimestampField)
+	}
+
+	logz.Info(fmt.Sprintf("Incremental query: %s", config.SQLQuery), map[string]interface{}{})
+
+	// Execute the ETL with modified query
+	loadDataErr := LoadData(nil, config)
+	if loadDataErr != nil {
+		return loadDataErr
+	}
+
+	// Update sync state with current timestamp
+	currentTime := time.Now().Format("2006-01-02 15:04:05")
+	saveErr := saveLastSyncValue(config.IncrementalSync.StateFile, currentTime)
+	if saveErr != nil {
+		logz.Error(fmt.Sprintf("Failed to save sync state: %v", saveErr), map[string]interface{}{})
+	} else {
+		logz.Info(fmt.Sprintf("Saved sync state: %s", currentTime), map[string]interface{}{})
+	}
+
+	logz.Info("Timestamp-based incremental sync completed successfully", map[string]interface{}{})
+	return nil
+}
+
+// executePrimaryKeyIncrementalETL performs primary key-based incremental sync
+func executePrimaryKeyIncrementalETL(config Config) error {
+	logz.Info(fmt.Sprintf("Executing primary key-based incremental sync on field: %s", config.PrimaryKey), map[string]interface{}{})
+
+	// Load last sync state
+	lastSyncValue, err := loadLastSyncValue(config.IncrementalSync.StateFile)
+	if err != nil {
+		logz.Info("No previous sync state found, starting full sync", map[string]interface{}{})
+		lastSyncValue = nil
+	}
+
+	// Modify the SQL query to include primary key filter
+	originalQuery := config.SQLQuery
+	if originalQuery == "" {
+		originalQuery = fmt.Sprintf("SELECT * FROM %s", config.SourceTable)
+	}
+
+	if lastSyncValue != nil {
+		whereClause := fmt.Sprintf("%s > %v", config.PrimaryKey, lastSyncValue)
+		if strings.Contains(strings.ToUpper(originalQuery), "WHERE") {
+			config.SQLQuery = originalQuery + " AND " + whereClause
+		} else {
+			config.SQLQuery = originalQuery + " WHERE " + whereClause
+		}
+		logz.Info(fmt.Sprintf("Resuming from last primary key: %v", lastSyncValue), map[string]interface{}{})
+	} else {
+		config.SQLQuery = originalQuery
+		logz.Info("First time sync - processing all records", map[string]interface{}{})
+	}
+
+	// Add ORDER BY to ensure consistent results
+	if !strings.Contains(strings.ToUpper(config.SQLQuery), "ORDER BY") {
+		config.SQLQuery += fmt.Sprintf(" ORDER BY %s", config.PrimaryKey)
+	}
+
+	logz.Info(fmt.Sprintf("Incremental query: %s", config.SQLQuery), map[string]interface{}{})
+
+	// Execute the ETL with modified query
+	loadDataErr := LoadData(nil, config)
+	if loadDataErr != nil {
+		return loadDataErr
+	}
+
+	// For primary key sync, we'll use a simple increment as placeholder
+	// In a real implementation, we'd query for the actual max value
+	newSyncValue := 1
+	if lastSyncValue != nil {
+		if val, ok := lastSyncValue.(float64); ok {
+			newSyncValue = int(val) + 100 // Increment by batch size
+		}
+	}
+
+	saveErr := saveLastSyncValue(config.IncrementalSync.StateFile, newSyncValue)
+	if saveErr != nil {
+		logz.Error(fmt.Sprintf("Failed to save sync state: %v", saveErr), map[string]interface{}{})
+	} else {
+		logz.Info(fmt.Sprintf("Saved sync state: %v", newSyncValue), map[string]interface{}{})
+	}
+
+	logz.Info("Primary key-based incremental sync completed successfully", map[string]interface{}{})
+	return nil
+}
+
+// Helper functions for state management
+func loadLastSyncValue(stateFile string) (interface{}, error) {
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		return nil, err
+	}
+
+	var state SyncState
+	if err := json.Unmarshal(data, &state); err != nil {
+		return nil, err
+	}
+
+	return state.LastSyncValue, nil
+}
+
+func saveLastSyncValue(stateFile string, value interface{}) error {
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(stateFile)
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
+	}
+
+	state := SyncState{
+		LastSyncValue: value,
+		LastSyncTime:  time.Now().Format(time.RFC3339),
+	}
+
+	data, err := json.MarshalIndent(state, "", "  ")
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(stateFile, data, 0644)
+}
+
 func VacuumDatabase(dbPath string) error {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {

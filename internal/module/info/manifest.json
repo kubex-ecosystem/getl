@@ -1,0 +1,39 @@
+{
+  "name": "Kubex GETL",
+  "application": "getl",
+  "version": "1.3.5",
+  "private": false,
+  "published": true,
+  "aliases": [
+    "getl"
+  ],
+  "repository": "https://github.com/kubex-ecosystem/getl",
+  "homepage": "https://github.com/kubex-ecosystem/getl",
+  "description": "Kubex GETL: A ETL tool for extracting, transforming, and loading data from various sources into your data warehouse.",
+  "main": "cmd/main.go",
+  "bin": "getl",
+  "author": "Rafael Mori <faelmori@gmail.com>",
+  "organization": "kubex-ecosystem",
+  "license": "MIT",
+  "keywords": [
+    "getl",
+    "kubex",
+    "control",
+    "command-line",
+    "tool",
+    "management"
+  ],
+  "platforms": [
+    "linux/amd64"
+  ],
+  "dependencies": [
+    "upx",
+    "tar",
+    "gzip",
+    "curl",
+    "git",
+    "zip",
+    "unzip",
+    "jq"
+  ]
+}

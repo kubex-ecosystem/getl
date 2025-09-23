@@ -2,7 +2,8 @@ package etypes
 
 import (
 	"fmt"
-	"github.com/faelmori/logz"
+
+	"github.com/kubex-ecosystem/logz"
 )
 
 const batchSize = 1000
@@ -79,7 +80,46 @@ type Config struct {
 	KafkaGroupID                string           `json:"kafkaGroupID"`
 	PrimaryKey                  string           `json:"primaryKey"`
 	UpdateKey                   string           `json:"updateKey"`
+
+	// Incremental Sync Configuration
+	IncrementalSync IncrementalSyncConfig `json:"incrementalSync"`
 }
+
+// IncrementalSyncConfig defines the configuration for incremental synchronization
+type IncrementalSyncConfig struct {
+	Enabled        bool                    `json:"enabled"`
+	Strategy       IncrementalSyncStrategy `json:"strategy"`
+	TimestampField string                  `json:"timestampField,omitempty"`
+	LastSyncValue  interface{}             `json:"lastSyncValue,omitempty"`
+	StateFile      string                  `json:"stateFile,omitempty"`
+	BatchSize      int                     `json:"batchSize,omitempty"`
+}
+
+// IncrementalSyncStrategy defines the type of incremental sync strategy
+type IncrementalSyncStrategy string
+
+const (
+	// TimestampBased uses a timestamp column to detect changes
+	TimestampBased IncrementalSyncStrategy = "timestamp"
+	// PrimaryKeyBased uses primary key ranges for insert-only tables
+	PrimaryKeyBased IncrementalSyncStrategy = "primary_key"
+	// HashBased uses row hashing to detect any changes
+	HashBased IncrementalSyncStrategy = "hash"
+	// FullSync performs a complete synchronization (default)
+	FullSync IncrementalSyncStrategy = "full"
+)
+
+// SyncState tracks the state of incremental synchronization
+type SyncState struct {
+	SourceTable      string      `json:"sourceTable"`
+	DestinationTable string      `json:"destinationTable"`
+	Strategy         string      `json:"strategy"`
+	LastSyncValue    interface{} `json:"lastSyncValue"`
+	LastSyncTime     string      `json:"lastSyncTime"`
+	RecordsProcessed int64       `json:"recordsProcessed"`
+	TotalRecords     int64       `json:"totalRecords"`
+}
+
 type Transformation struct {
 	SourceField      string `json:"sourceField"`
 	DestinationField string `json:"destinationField"`
@@ -280,13 +320,45 @@ func GetVendorSqlType(driver, sourceType string) string {
 		logz.Error(fmt.Sprintf("No mapping found for driver %s", driver), map[string]interface{}{})
 		return ""
 	}
+
+	// Direct mapping lookup
 	for _, mapItem := range mapping {
 		if mapItem.sourceType == sourceType {
 			return mapItem.targetType
 		}
 	}
-	logz.Error(fmt.Sprintf("No mapping found for source type %s", sourceType), map[string]interface{}{})
-	return ""
+
+	// Intelligent fallbacks for common normalized types
+	switch sourceType {
+	case "INTEGER":
+		return GetVendorSqlType(driver, "INT")
+	case "REAL":
+		return GetVendorSqlType(driver, "FLOAT")
+	case "TEXT":
+		return GetVendorSqlType(driver, "VARCHAR")
+	case "BLOB":
+		return GetVendorSqlType(driver, "BLOB")
+	}
+
+	// Ultimate fallback based on driver
+	switch driver {
+	case "sqlite3", "sqlite":
+		switch sourceType {
+		case "INTEGER":
+			return "INTEGER"
+		case "REAL":
+			return "REAL"
+		case "TEXT":
+			return "TEXT"
+		case "BLOB":
+			return "BLOB"
+		default:
+			return "TEXT"
+		}
+	default:
+		logz.Error(fmt.Sprintf("No mapping found for source type %s in driver %s", sourceType, driver), map[string]interface{}{})
+		return ""
+	}
 }
 
 type VJobList struct {

@@ -2,10 +2,11 @@ package extr
 
 import (
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	"github.com/faelmori/logz"
-	"gopkg.in/yaml.v2"
 	"os"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+	"github.com/kubex-ecosystem/logz"
+	"gopkg.in/yaml.v2"
 )
 
 type YAMLDataTable struct {

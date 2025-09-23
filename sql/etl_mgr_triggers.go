@@ -4,8 +4,9 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
 	"text/template"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
 )
 
 // createTrigger cria um trigger no banco de dados especificado.

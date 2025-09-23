@@ -1,0 +1,41 @@
+{
+  "sourceType": "postgres",
+  "sourceConnectionString": "postgres://user:password@localhost:5432/ecommerce",
+  "sourceTable": "orders",
+  "destinationType": "sqlite3",
+  "destinationConnectionString": "/data/analytics/orders.db",
+  "destinationTable": "orders_sync",
+  "outputFormat": "csv",
+  "outputPath": "/exports/orders_incremental.csv",
+
+  "incrementalSync": {
+    "enabled": true,
+    "strategy": "timestamp",
+    "timestampField": "created_at",
+    "stateFile": "/state/ecommerce-orders.json",
+    "batchSize": 5000
+  },
+
+  "transformations": [
+    {
+      "sourceField": "order_id",
+      "destinationField": "id",
+      "operation": "none"
+    },
+    {
+      "sourceField": "customer_email",
+      "destinationField": "customer",
+      "operation": "none"
+    },
+    {
+      "sourceField": "total_amount",
+      "destinationField": "amount",
+      "operation": "none"
+    },
+    {
+      "sourceField": "created_at",
+      "destinationField": "order_date",
+      "operation": "none"
+    }
+  ]
+}

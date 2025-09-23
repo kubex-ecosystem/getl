@@ -1,9 +1,10 @@
 package protoextr
 
 import (
-	"github.com/faelmori/logz"
-	"google.golang.org/protobuf/proto"
 	"os"
+
+	"github.com/kubex-ecosystem/logz"
+	"google.golang.org/protobuf/proto"
 )
 
 type ProtobufDataTable struct {

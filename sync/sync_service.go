@@ -3,8 +3,9 @@ package etl
 import (
 	"database/sql"
 	"fmt"
-	"github.com/faelmori/getl/meta"
 	"time"
+
+	"github.com/kubex-ecosystem/getl/meta"
 )
 
 type SyncService struct {

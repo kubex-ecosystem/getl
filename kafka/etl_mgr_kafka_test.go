@@ -4,10 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	. "github.com/faelmori/getl/etypes"
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/segmentio/kafka-go"
 	"testing"
+
+	_ "github.com/go-sql-driver/mysql"
+	. "github.com/kubex-ecosystem/getl/etypes"
+	"github.com/segmentio/kafka-go"
 )
 
 func TestRunETL(t *testing.T) {

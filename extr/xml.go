@@ -3,9 +3,10 @@ package extr
 import (
 	"encoding/xml"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	"github.com/faelmori/logz"
 	"os"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+	"github.com/kubex-ecosystem/logz"
 )
 
 type XMLRow struct {
