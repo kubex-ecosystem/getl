@@ -6,7 +6,7 @@ import (
 	"os"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 )
 
 type CSVDataTable struct {
@@ -27,21 +27,21 @@ func (e *CSVDataTable) LoadFile() error {
 	var openFileErr error
 
 	if _, err := os.Stat(e.filePath); err != nil {
-		logz.Error("File not found: "+e.filePath, map[string]interface{}{})
+		gl.Log("error", "File not found: "+e.filePath)
 		return err
 	} else {
 		openFile, openFileErr = os.Open(e.filePath)
 	}
 
 	if openFileErr != nil {
-		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to open file: "+openFileErr.Error())
 		return openFileErr
 	}
 	defer openFile.Close()
 	reader := csv.NewReader(openFile)
 	records, readErr := reader.ReadAll()
 	if readErr != nil {
-		logz.Error("Failed to read CSV: "+readErr.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to read CSV: "+readErr.Error())
 		return readErr
 	}
 
@@ -66,7 +66,7 @@ func (e *CSVDataTable) LoadData(data []Data) {
 func (e *CSVDataTable) ExtractFile() error {
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to create file: "+err.Error())
 		return err
 	}
 	defer file.Close()
@@ -79,7 +79,7 @@ func (e *CSVDataTable) ExtractFile() error {
 		headers = append(headers, key)
 	}
 	if writerErr := writer.Write(headers); writerErr != nil {
-		logz.Error("Failed to write headers to CSV: "+writerErr.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to write headers to CSV: "+writerErr.Error())
 		return writerErr
 	}
 	for _, row := range e.data {
@@ -93,7 +93,7 @@ func (e *CSVDataTable) ExtractFile() error {
 		}
 
 		if writerRowsErr := writer.Write(rowData); writerRowsErr != nil {
-			logz.Error("Failed to write row to CSV: "+writerRowsErr.Error(), map[string]interface{}{})
+			gl.Log("error", "Failed to write row to CSV: "+writerRowsErr.Error())
 			return writerRowsErr
 		}
 	}
@@ -102,7 +102,7 @@ func (e *CSVDataTable) ExtractFile() error {
 
 func (e *CSVDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
@@ -119,7 +119,7 @@ func (e *CSVDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
@@ -128,12 +128,12 @@ func (e *CSVDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *CSVDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		logz.Error("Invalid index", map[string]interface{}{})
+		gl.Log("error", "Invalid index")
 		return nil, fmt.Errorf("Invalid index")
 	}
 
@@ -142,12 +142,12 @@ func (e *CSVDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *CSVDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		logz.Error("Invalid range", map[string]interface{}{})
+		gl.Log("error", "Invalid range")
 		return nil, fmt.Errorf("Invalid range")
 	}
 
@@ -156,7 +156,7 @@ func (e *CSVDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *CSVDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
@@ -168,7 +168,7 @@ func (e *CSVDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	}
 
 	if len(filteredData) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 

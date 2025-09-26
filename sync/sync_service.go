@@ -2,9 +2,9 @@ package etl
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	"github.com/kubex-ecosystem/getl/meta"
 )
 
@@ -31,14 +31,14 @@ func (s *SyncService) Start() {
 		case <-ticker.C:
 			changed, err := meta.CheckAndUpdateHashes(s.db, s.tableName)
 			if err != nil {
-				fmt.Printf("Erro ao verificar e atualizar hashes: %v\n", err)
+				gl.Log("error", "Erro ao verificar e atualizar hashes:", err)
 				continue
 			}
 			if changed {
-				fmt.Println("Dados alterados, sincronizando...")
+				gl.Log("info", "Dados alterados, sincronizando...")
 				// Adicione a lógica de sincronização aqui
 			} else {
-				fmt.Println("Nenhuma alteração detectada.")
+				gl.Log("info", "Nenhuma alteração detectada.")
 			}
 		}
 	}

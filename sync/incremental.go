@@ -10,7 +10,7 @@ import (
 	"time"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 )
 
 // IncrementalSyncManager handles incremental synchronization between databases
@@ -42,11 +42,11 @@ func NewIncrementalSyncManager(config Config) *IncrementalSyncManager {
 // ExecuteIncrementalSync performs incremental synchronization based on the configured strategy
 func (ism *IncrementalSyncManager) ExecuteIncrementalSync() error {
 	if !ism.config.IncrementalSync.Enabled {
-		logz.Info("Incremental sync is disabled, performing full sync", map[string]interface{}{})
+		gl.Log("info", "Incremental sync is disabled, performing full sync")
 		return ism.executeFullSync()
 	}
 
-	logz.Info(fmt.Sprintf("Starting incremental sync with strategy: %s", ism.config.IncrementalSync.Strategy), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Starting incremental sync with strategy: %s", ism.config.IncrementalSync.Strategy))
 
 	switch ism.config.IncrementalSync.Strategy {
 	case TimestampBased:
@@ -62,7 +62,7 @@ func (ism *IncrementalSyncManager) ExecuteIncrementalSync() error {
 
 // executeTimestampBasedSync synchronizes based on timestamp columns
 func (ism *IncrementalSyncManager) executeTimestampBasedSync() error {
-	logz.Info("Executing timestamp-based incremental sync", map[string]interface{}{})
+	gl.Log("info", "Executing timestamp-based incremental sync")
 
 	if ism.config.IncrementalSync.TimestampField == "" {
 		return fmt.Errorf("timestamp field is required for timestamp-based sync")
@@ -88,7 +88,7 @@ func (ism *IncrementalSyncManager) executeTimestampBasedSync() error {
 		}
 	}
 
-	logz.Info(fmt.Sprintf("Incremental query: %s", ism.config.SQLQuery), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Incremental query: %s", ism.config.SQLQuery))
 
 	// Execute the sync
 	err := ism.executeSyncWithQuery()
@@ -102,7 +102,7 @@ func (ism *IncrementalSyncManager) executeTimestampBasedSync() error {
 
 // executePrimaryKeyBasedSync synchronizes based on primary key ranges
 func (ism *IncrementalSyncManager) executePrimaryKeyBasedSync() error {
-	logz.Info("Executing primary key-based incremental sync", map[string]interface{}{})
+	gl.Log("info", "Executing primary key-based incremental sync")
 
 	if ism.config.PrimaryKey == "" {
 		return fmt.Errorf("primary key is required for primary key-based sync")
@@ -133,7 +133,7 @@ func (ism *IncrementalSyncManager) executePrimaryKeyBasedSync() error {
 		ism.config.SQLQuery += fmt.Sprintf(" ORDER BY %s", ism.config.PrimaryKey)
 	}
 
-	logz.Info(fmt.Sprintf("Incremental query: %s", ism.config.SQLQuery), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Incremental query: %s", ism.config.SQLQuery))
 
 	// Execute the sync
 	err := ism.executeSyncWithQuery()
@@ -147,17 +147,17 @@ func (ism *IncrementalSyncManager) executePrimaryKeyBasedSync() error {
 
 // executeHashBasedSync synchronizes based on row hashing
 func (ism *IncrementalSyncManager) executeHashBasedSync() error {
-	logz.Info("Executing hash-based incremental sync", map[string]interface{}{})
+	gl.Log("info", "Executing hash-based incremental sync")
 
 	// For hash-based sync, we need to compare source and destination
 	// This is more complex and requires reading both sides
-	logz.Info("Hash-based sync implementation pending - falling back to full sync", map[string]interface{}{})
+	gl.Log("info", "Hash-based sync implementation pending - falling back to full sync")
 	return ism.executeFullSync()
 }
 
 // executeFullSync performs a complete synchronization
 func (ism *IncrementalSyncManager) executeFullSync() error {
-	logz.Info("Executing full synchronization", map[string]interface{}{})
+	gl.Log("info", "Executing full synchronization")
 
 	// Reset the SQL query to original or default
 	if ism.config.SQLQuery == "" {
@@ -171,7 +171,7 @@ func (ism *IncrementalSyncManager) executeFullSync() error {
 func (ism *IncrementalSyncManager) executeSyncWithQuery() error {
 	// Import the ETL execution function from sql package
 	// We'll need to modify this to use the existing ETL functions
-	logz.Info("Executing sync with configured query", map[string]interface{}{})
+	gl.Log("info", "Executing sync with configured query")
 
 	// For now, we'll use a placeholder - we need to integrate with existing ExecuteETL
 	// This will be implemented by calling the existing ETL functions with our modified config
@@ -192,7 +192,7 @@ func (ism *IncrementalSyncManager) updateTimestampState() error {
 
 	// For now, use current time as placeholder
 	ism.state.LastSyncValue = time.Now().Format(time.RFC3339)
-	logz.Info(fmt.Sprintf("Updated timestamp state to: %v", ism.state.LastSyncValue), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Updated timestamp state to: %v", ism.state.LastSyncValue))
 
 	return ism.saveState()
 }
@@ -211,7 +211,7 @@ func (ism *IncrementalSyncManager) updatePrimaryKeyState() error {
 		}
 	}
 
-	logz.Info(fmt.Sprintf("Updated primary key state to: %v", ism.state.LastSyncValue), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Updated primary key state to: %v", ism.state.LastSyncValue))
 
 	return ism.saveState()
 }
@@ -230,7 +230,7 @@ func (ism *IncrementalSyncManager) loadState() error {
 
 	// Check if state file exists
 	if _, err := os.Stat(ism.config.IncrementalSync.StateFile); os.IsNotExist(err) {
-		logz.Info("No existing state file found, starting fresh", map[string]interface{}{})
+		gl.Log("info", "No existing state file found, starting fresh")
 		return nil
 	}
 
@@ -244,8 +244,8 @@ func (ism *IncrementalSyncManager) loadState() error {
 		return fmt.Errorf("failed to parse state file: %w", err)
 	}
 
-	logz.Info(fmt.Sprintf("Loaded sync state from: %s", ism.config.IncrementalSync.StateFile), map[string]interface{}{})
-	logz.Info(fmt.Sprintf("Last sync value: %v", ism.state.LastSyncValue), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Loaded sync state from: %s", ism.config.IncrementalSync.StateFile))
+	gl.Log("info", fmt.Sprintf("Last sync value: %v", ism.state.LastSyncValue))
 
 	return nil
 }
@@ -273,7 +273,7 @@ func (ism *IncrementalSyncManager) saveState() error {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
 
-	logz.Info(fmt.Sprintf("Saved sync state to: %s", ism.config.IncrementalSync.StateFile), map[string]interface{}{})
+	gl.Log("info", fmt.Sprintf("Saved sync state to: %s", ism.config.IncrementalSync.StateFile))
 
 	return nil
 }

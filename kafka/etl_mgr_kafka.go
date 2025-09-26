@@ -9,7 +9,7 @@ import (
 
 	. "github.com/kubex-ecosystem/getl/etypes"
 	s "github.com/kubex-ecosystem/getl/sql"
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	"github.com/segmentio/kafka-go"
 )
 
@@ -159,19 +159,19 @@ func (k *Kafka) Close() {
 	defer k.mu.Unlock()
 	if k.Reader != nil {
 		if err := k.Reader.Close(); err != nil {
-			logz.Error("erro ao fechar o leitor Kafka: "+err.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao fechar o leitor Kafka: "+err.Error())
 		}
 	}
 	if k.Writer != nil {
 		if err := k.Writer.Close(); err != nil {
-			logz.Error("erro ao fechar o escritor Kafka: "+err.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao fechar o escritor Kafka: "+err.Error())
 		}
 	}
 }
 func (k *Kafka) SyncData() {
 	db, openErr := sql.Open(k.DestinationType, k.DestinationConnectionString)
 	if openErr != nil {
-		logz.Error("erro ao conectar ao banco de dados de destino: "+openErr.Error(), map[string]interface{}{})
+		gl.Log("error", "erro ao conectar ao banco de dados de destino: "+openErr.Error())
 		return
 	}
 	defer db.Close()
@@ -180,18 +180,18 @@ func (k *Kafka) SyncData() {
 	for {
 		msg, kafkaReaderErr := kafkaReader.ReadMessage(context.Background())
 		if kafkaReaderErr != nil {
-			logz.Error("erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error())
 			continue
 		}
 
 		var row = make(map[string]interface{})
 		if unmarshalErr := json.Unmarshal(msg.Value, &row); unmarshalErr != nil {
-			logz.Error("erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error())
 			continue
 		}
 
 		if loadDataErr := s.LoadData(db, k.KafkaConfig); loadDataErr != nil {
-			logz.Error("erro ao carregar dados no banco de destino: "+loadDataErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao carregar dados no banco de destino: "+loadDataErr.Error())
 		}
 	}
 }
@@ -324,7 +324,7 @@ func CreateKafkaWriterWithConfig(kafkaURL, topic string) *kafka.Writer {
 func SyncData(config Config, kafkaReader *kafka.Reader) {
 	db, openErr := sql.Open(config.DestinationType, config.DestinationConnectionString)
 	if openErr != nil {
-		logz.Error("erro ao conectar ao banco de dados de destino: "+openErr.Error(), map[string]interface{}{})
+		gl.Log("error", "erro ao conectar ao banco de dados de destino: "+openErr.Error())
 		return
 	}
 	defer db.Close()
@@ -332,18 +332,18 @@ func SyncData(config Config, kafkaReader *kafka.Reader) {
 	for {
 		msg, kafkaReaderErr := kafkaReader.ReadMessage(context.Background())
 		if kafkaReaderErr != nil {
-			logz.Error("erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error())
 			continue
 		}
 
 		var row = make(map[string]interface{})
 		if unmarshalErr := json.Unmarshal(msg.Value, &row); unmarshalErr != nil {
-			logz.Error("erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error())
 			continue
 		}
 
 		if loadDataErr := s.LoadData(db, config); loadDataErr != nil {
-			logz.Error("erro ao carregar dados no banco de destino: "+loadDataErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao carregar dados no banco de destino: "+loadDataErr.Error())
 		}
 	}
 }

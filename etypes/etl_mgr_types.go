@@ -3,7 +3,7 @@ package etypes
 import (
 	"fmt"
 
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 )
 
 const batchSize = 1000
@@ -311,13 +311,13 @@ func GetVendorSqlTypeMap(driver string) VendorSqlTypeMapList {
 			return mapping.mapping
 		}
 	}
-	logz.Error(fmt.Sprintf("No mapping found for driver %s", driver), map[string]interface{}{})
+	gl.Log("error", fmt.Sprintf("No mapping found for driver %s", driver))
 	return nil
 }
 func GetVendorSqlType(driver, sourceType string) string {
 	mapping := GetVendorSqlTypeMap(driver)
 	if mapping == nil {
-		logz.Error(fmt.Sprintf("No mapping found for driver %s", driver), map[string]interface{}{})
+		gl.Log("error", fmt.Sprintf("No mapping found for driver %s", driver))
 		return ""
 	}
 
@@ -356,7 +356,7 @@ func GetVendorSqlType(driver, sourceType string) string {
 			return "TEXT"
 		}
 	default:
-		logz.Error(fmt.Sprintf("No mapping found for source type %s in driver %s", sourceType, driver), map[string]interface{}{})
+		gl.Log("error", fmt.Sprintf("No mapping found for source type %s in driver %s", sourceType, driver))
 		return ""
 	}
 }

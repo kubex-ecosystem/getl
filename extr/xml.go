@@ -6,7 +6,7 @@ import (
 	"os"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 )
 
 type XMLRow struct {
@@ -43,14 +43,14 @@ func (e *XMLDataTable) LoadFile() error {
 	var openFileErr error
 
 	if _, err := os.Stat(e.filePath); err != nil {
-		logz.Error("File not found: "+e.filePath, map[string]interface{}{})
+		gl.Log("error", "File not found: "+e.filePath)
 		return err
 	} else {
 		openFile, openFileErr = os.Open(e.filePath)
 	}
 
 	if openFileErr != nil {
-		logz.Error("Failed to open file: "+openFileErr.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to open file: "+openFileErr.Error())
 		return openFileErr
 	}
 	defer openFile.Close()
@@ -58,7 +58,7 @@ func (e *XMLDataTable) LoadFile() error {
 
 	var xmlData XMLData
 	if decodeErr := decoder.Decode(&xmlData); decodeErr != nil {
-		logz.Error("Failed to decode data: "+decodeErr.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to decode data: "+decodeErr.Error())
 		return decodeErr
 	}
 
@@ -94,7 +94,7 @@ func (e *XMLDataTable) ExtractFile() error {
 
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to create file: "+err.Error())
 		return err
 	}
 	defer file.Close()
@@ -102,7 +102,7 @@ func (e *XMLDataTable) ExtractFile() error {
 	encoder := xml.NewEncoder(file)
 	encoder.Indent("", "  ")
 	if err := encoder.Encode(xmlData); err != nil {
-		logz.Error("Failed to write XML: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to write XML: "+err.Error())
 		return err
 	}
 
@@ -111,7 +111,7 @@ func (e *XMLDataTable) ExtractFile() error {
 
 func (e *XMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
@@ -128,7 +128,7 @@ func (e *XMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
@@ -137,12 +137,12 @@ func (e *XMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *XMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		logz.Error("Invalid index", map[string]interface{}{})
+		gl.Log("error", "Invalid index")
 		return nil, fmt.Errorf("Invalid index")
 	}
 
@@ -151,12 +151,12 @@ func (e *XMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *XMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		logz.Error("Invalid range", map[string]interface{}{})
+		gl.Log("error", "Invalid range")
 		return nil, fmt.Errorf("Invalid range")
 	}
 
@@ -165,7 +165,7 @@ func (e *XMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *XMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 
@@ -177,7 +177,7 @@ func (e *XMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	}
 
 	if len(filteredData) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("No data to extract")
 	}
 

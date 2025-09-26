@@ -3,7 +3,7 @@ package protoextr
 import (
 	"os"
 
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -22,13 +22,13 @@ func NewProtobufDataTable(data []*Data, filePath string) *ProtobufDataTable {
 func (e *ProtobufDataTable) LoadFile() error {
 	file, err := os.ReadFile(e.filePath)
 	if err != nil {
-		logz.Error("Failed to open file: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to open file: "+err.Error())
 		return err
 	}
 
 	var dataList DataList
 	if err := proto.Unmarshal(file, &dataList); err != nil {
-		logz.Error("Failed to decode Protobuf: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to decode Protobuf: "+err.Error())
 		return err
 	}
 
@@ -45,12 +45,12 @@ func (e *ProtobufDataTable) ExtractFile() error {
 
 	data, err := proto.Marshal(dataList)
 	if err != nil {
-		logz.Error("Failed to encode Protobuf: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to encode Protobuf: "+err.Error())
 		return err
 	}
 
 	if err := os.WriteFile(e.filePath, data, 0644); err != nil {
-		logz.Error("Failed to write file: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to write file: "+err.Error())
 		return err
 	}
 

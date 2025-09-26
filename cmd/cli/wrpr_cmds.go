@@ -10,7 +10,7 @@ import (
 	. "github.com/kubex-ecosystem/getl/etypes"
 	. "github.com/kubex-ecosystem/getl/sql"
 	. "github.com/kubex-ecosystem/getl/utils"
-	"github.com/kubex-ecosystem/logz"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ func VacuumCmd() *cobra.Command {
 		Long:    "Este comando executa a limpeza de compactação de registros, indexação e otimização de banco de dados SQLite.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := ValidateArgs(dbFilePath); err != nil {
-				logz.Error(fmt.Sprintf("falha ao validar argumentos: %v", err), map[string]interface{}{})
+				gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", err))
 				return err
 			}
 
@@ -74,10 +74,10 @@ func ExtractCmd() *cobra.Command {
 				if saveDataErr := SaveData(fileOutputPath, data, fileOutputFormat); saveDataErr != nil {
 					return fmt.Errorf("falha ao salvar os dados extraídos: %w", saveDataErr)
 				}
-				logz.Info("Extração concluída com sucesso", map[string]interface{}{})
+				gl.Log("info", "Extração concluída com sucesso")
 			} else {
 				// Imprimir os dados extraídos no console
-				logz.Info("Extração concluída com sucesso", map[string]interface{}{})
+				gl.Log("info", "Extração concluída com sucesso")
 				fmt.Printf("%s\n", data)
 			}
 
@@ -124,7 +124,7 @@ func LoadCmd() *cobra.Command {
 				return fmt.Errorf("falha ao carregar os dados no destino: %w", loadDataErr)
 			}
 
-			logz.Info("Carregamento concluído com sucesso", map[string]interface{}{})
+			gl.Log("info", "Carregamento concluído com sucesso")
 			return nil
 		},
 	}
@@ -149,7 +149,7 @@ func SyncCmd() *cobra.Command {
 		Long:    "Este comando executa as etapas de extração, transformação e carregamento de dados em sequência.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if validateArgsErr := ValidateArgs(fileConfigPath); validateArgsErr != nil {
-				logz.Error(fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr), map[string]interface{}{})
+				gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr))
 				return validateArgsErr
 			}
 			return ExecuteETL(fileConfigPath, fileOutputPath, outputFormat, needCheck, checkMethod)
@@ -191,7 +191,7 @@ func ProduceCmd() *cobra.Command {
 				return fmt.Errorf("falha ao produzir mensagem: %w", err)
 			}
 
-			logz.Info("Mensagem produzida com sucesso", map[string]interface{}{})
+			gl.Log("info", "Mensagem produzida com sucesso")
 			return nil
 		},
 	}
@@ -232,7 +232,7 @@ func ConsumeCmd() *cobra.Command {
 					return fmt.Errorf("falha ao deserializar mensagem: %w", err)
 				}
 
-				logz.Info(fmt.Sprintf("Mensagem consumida: %v", data), map[string]interface{}{})
+				gl.Log("info", fmt.Sprintf("Mensagem consumida: %v", data))
 			}
 		},
 	}
@@ -258,7 +258,7 @@ func DataTableCmd() *cobra.Command {
 		Short:   "Carrega os dados de uma tabela no banco de origem",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if validateArgsErr := ValidateArgs(fileConfigPath); validateArgsErr != nil {
-				logz.Error(fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr), map[string]interface{}{})
+				gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr))
 				return validateArgsErr
 			}
 			return ShowDataTableFromConfig(fileConfigPath, export, outputPath, outputFormat)
