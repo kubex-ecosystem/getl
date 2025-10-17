@@ -64,7 +64,7 @@ repos:
             "protect",
             "--staged",
             "--no-banner",
-            "--config=support/.gitleaks.toml",
+            "--config=support/hooks/.gitleaks.toml",
           ]
 
   # -------- Go tools --------
