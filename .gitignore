@@ -69,3 +69,4 @@ dist/*
 .kubex/
 .claude/
 CLAUDE.md
+.venv-hooks
