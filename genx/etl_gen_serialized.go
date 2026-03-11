@@ -1,8 +1,9 @@
 package genx
 
 import (
-	"fmt"
 	"reflect"
+
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 // SerializeYAMLToJSON gera uma função Go que converte dados YAML para JSON.
@@ -13,8 +14,8 @@ import (
 // - Uma string contendo a definição da função Go gerada.
 func SerializeYAMLToJSON(v interface{}) string {
 	typ := reflect.TypeOf(v).Elem()
-	funcName := fmt.Sprintf("ConvertYAMLToJSON%s", typ.Name())
-	return fmt.Sprintf(`func %s(yamlData []byte) (string, error) {
+	funcName := gl.Sprintf("ConvertYAMLToJSON%s", typ.Name())
+	return gl.Sprintf(`func %s(yamlData []byte) (string, error) {
 		var data %s
 		if err := yaml.Unmarshal(yamlData, &data); err != nil {
 			return "", err
@@ -35,8 +36,8 @@ func SerializeYAMLToJSON(v interface{}) string {
 // - Uma string contendo a definição da função Go gerada.
 func SerializeJSONToYAML(v interface{}) string {
 	typ := reflect.TypeOf(v).Elem()
-	funcName := fmt.Sprintf("ConvertJSONToYAML%s", typ.Name())
-	return fmt.Sprintf(`func %s(jsonData []byte) (string, error) {
+	funcName := gl.Sprintf("ConvertJSONToYAML%s", typ.Name())
+	return gl.Sprintf(`func %s(jsonData []byte) (string, error) {
 		var data %s
 		if err := json.Unmarshal(jsonData, &data); err != nil {
 			return "", err
@@ -57,8 +58,8 @@ func SerializeJSONToYAML(v interface{}) string {
 // - Uma string contendo a definição da função Go gerada.
 func SerializeSQLInsert(v interface{}) string {
 	typ := reflect.TypeOf(v).Elem()
-	funcName := fmt.Sprintf("GenerateSQLInsert%s", typ.Name())
-	result := fmt.Sprintf(`func %s(data %s) string {
+	funcName := gl.Sprintf("GenerateSQLInsert%s", typ.Name())
+	result := gl.Sprintf(`func %s(data %s) string {
 		query := "INSERT INTO %s (`, funcName, typ.Name(), typ.Name())
 
 	for i := 0; i < typ.NumField(); i++ {
@@ -75,7 +76,7 @@ func SerializeSQLInsert(v interface{}) string {
 		if i > 0 {
 			result += ", "
 		}
-		result += fmt.Sprintf("'%v'", reflect.ValueOf(v).Field(i).Interface())
+		result += gl.Sprintf("'%v'", reflect.ValueOf(v).Field(i).Interface())
 	}
 
 	result += `)"
@@ -93,7 +94,7 @@ func SerializationDemo() {
 	}
 
 	example := Example{}
-	fmt.Println(SerializeYAMLToJSON(&example))
-	fmt.Println(SerializeJSONToYAML(&example))
-	fmt.Println(SerializeSQLInsert(&example))
+	gl.Println(SerializeYAMLToJSON(&example))
+	gl.Println(SerializeJSONToYAML(&example))
+	gl.Println(SerializeSQLInsert(&example))
 }

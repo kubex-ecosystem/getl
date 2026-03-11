@@ -7,8 +7,9 @@ import (
 
 	. "github.com/kubex-ecosystem/getl/etypes"
 
-	//"github.com/kubex-ecosystem/kbx/mods/utils"
 	"github.com/faelmori/gkbxsrv/utils"
+
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 func CreateInternalSchema(db *sql.DB) error {
@@ -33,8 +34,8 @@ func CheckAndUpdateHashes(db *sql.DB, tableName string) (bool, error) {
 
 	hash := utils.NewHash()
 	for _, row := range data {
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
 	}
 	newHash := hash.Sum(nil)
 
@@ -79,8 +80,8 @@ func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, erro
 	// Gerar um hash incremental para o conjunto de dados
 	hash := utils.NewHash()
 	for _, row := range data {
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
 	}
 	newHash := hash.Sum(nil)
 

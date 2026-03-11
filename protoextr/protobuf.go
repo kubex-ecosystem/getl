@@ -3,7 +3,7 @@ package protoextr
 import (
 	"os"
 
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 	"google.golang.org/protobuf/proto"
 )
 

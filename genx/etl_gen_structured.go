@@ -1,8 +1,9 @@
 package genx
 
 import (
-	"fmt"
 	"reflect"
+
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 // DeserializeJSONTo gera uma função para desserializar dados JSON em uma struct.
@@ -10,8 +11,8 @@ import (
 // Retorna uma string contendo a função gerada.
 func DeserializeJSONTo(v interface{}) string {
 	typ := reflect.TypeOf(v).Elem()
-	funcName := fmt.Sprintf("DeserializeJSONTo%s", typ.Name())
-	return fmt.Sprintf(`func %s(jsonData []byte) (%s, error) {
+	funcName := gl.Sprintf("DeserializeJSONTo%s", typ.Name())
+	return gl.Sprintf(`func %s(jsonData []byte) (%s, error) {
 					var data %s
 					if err := json.Unmarshal(jsonData, &data); err != nil {
 						return data, err
@@ -25,8 +26,8 @@ func DeserializeJSONTo(v interface{}) string {
 // Retorna uma string contendo a função gerada.
 func DeserializeYAMLTo(v interface{}) string {
 	typ := reflect.TypeOf(v).Elem()
-	funcName := fmt.Sprintf("DeserializeYAMLTo%s", typ.Name())
-	return fmt.Sprintf(`func %s(yamlData []byte) (%s, error) {
+	funcName := gl.Sprintf("DeserializeYAMLTo%s", typ.Name())
+	return gl.Sprintf(`func %s(yamlData []byte) (%s, error) {
 					var data %s
 					if err := yaml.Unmarshal(yamlData, &data); err != nil {
 						return data, err
@@ -40,14 +41,14 @@ func DeserializeYAMLTo(v interface{}) string {
 // Retorna uma string contendo a função gerada.
 func DeserializeSQLTo(v interface{}) string {
 	typ := reflect.TypeOf(v).Elem()
-	funcName := fmt.Sprintf("DeserializeSQLTo%s", typ.Name())
-	result := fmt.Sprintf(`func %s(row map[string]interface{}) (%s, error) {
+	funcName := gl.Sprintf("DeserializeSQLTo%s", typ.Name())
+	result := gl.Sprintf(`func %s(row map[string]interface{}) (%s, error) {
 					var data %s
 					for key, value := range row {
 						switch key {`, funcName, typ.Name(), typ.Name())
 	for i := 0; i < typ.NumField(); i++ {
 		field := typ.Field(i)
-		result += fmt.Sprintf(`
+		result += gl.Sprintf(`
 						case "%s":
 							data.%s = value.(%s)`, field.Name, field.Name, field.Type)
 	}
@@ -67,7 +68,7 @@ func DeserializationDemo() {
 	}
 
 	example := Example{}
-	fmt.Println(DeserializeJSONTo(&example))
-	fmt.Println(DeserializeYAMLTo(&example))
-	fmt.Println(DeserializeSQLTo(&example))
+	gl.Println(DeserializeJSONTo(&example))
+	gl.Println(DeserializeYAMLTo(&example))
+	gl.Println(DeserializeSQLTo(&example))
 }

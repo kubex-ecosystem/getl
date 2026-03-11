@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 type CSVDataTable struct {
@@ -116,7 +116,7 @@ func (e *CSVDataTable) ExtractFile() error {
 				rowData = append(rowData, "")
 				continue
 			}
-			rowData = append(rowData, fmt.Sprintf("%v", value))
+			rowData = append(rowData, gl.Sprintf("%v", value))
 		}
 
 		if writerRowsErr := writer.Write(rowData); writerRowsErr != nil {

@@ -19,7 +19,7 @@ import (
 	"strings"
 
 	"github.com/faelmori/gkbxsrv/utils"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 func ApplyTransformations(data []Data, transformations []Transformation) ([]Data, error) {
@@ -75,7 +75,7 @@ func asString(value interface{}) string {
 	case []byte:
 		return string(v)
 	default:
-		return fmt.Sprintf("%v", value)
+		return gl.Sprintf("%v", value)
 	}
 }
 func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
@@ -204,7 +204,7 @@ func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery s
 
 		var row []string
 		for _, value := range values {
-			row = append(row, fmt.Sprintf("%v", value))
+			row = append(row, gl.Sprintf("%v", value))
 		}
 		data = append(data, row)
 	}

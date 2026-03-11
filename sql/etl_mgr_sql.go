@@ -23,7 +23,7 @@ import (
 
 	"github.com/faelmori/gkbxsrv/utils"
 	_ "github.com/godror/godror"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 	ui "github.com/kubex-ecosystem/xtui/components"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
@@ -182,7 +182,7 @@ func extractCSVDataWithTypes(config Config) ([]Data, map[string]string, error) {
 	for _, row := range data {
 		for column, value := range row {
 			inferredType := inferTypeFromValue(value)
-			if inferredType == "TEXT" && strings.TrimSpace(fmt.Sprintf("%v", value)) == "" {
+			if inferredType == "TEXT" && strings.TrimSpace(gl.Sprintf("%v", value)) == "" {
 				continue
 			}
 			columnTypes[column] = promoteInferredType(columnTypes[column], inferredType)
@@ -236,11 +236,11 @@ func resolveDestinationFieldTypes(sourceTypes map[string]string, transformations
 func buildPlaceholder(driver string, index int) string {
 	switch normalizeDriverName(driver) {
 	case "postgres":
-		return fmt.Sprintf("$%d", index)
+		return gl.Sprintf("$%d", index)
 	case "sqlserver", "mssql":
-		return fmt.Sprintf("@p%d", index)
+		return gl.Sprintf("@p%d", index)
 	case "oracle", "godror":
-		return fmt.Sprintf(":%d", index)
+		return gl.Sprintf(":%d", index)
 	default:
 		return "?"
 	}
@@ -258,14 +258,14 @@ func buildConflictClause(driver, updateKey string, columns []string) (string, er
 			if column == updateKey {
 				continue
 			}
-			assignments = append(assignments, fmt.Sprintf("%s = EXCLUDED.%s", column, column))
+			assignments = append(assignments, gl.Sprintf("%s = EXCLUDED.%s", column, column))
 		}
 		if len(assignments) == 0 {
-			return fmt.Sprintf(" ON CONFLICT (%s) DO NOTHING", updateKey), nil
+			return gl.Sprintf(" ON CONFLICT (%s) DO NOTHING", updateKey), nil
 		}
-		return fmt.Sprintf(" ON CONFLICT (%s) DO UPDATE SET %s", updateKey, strings.Join(assignments, ", ")), nil
+		return gl.Sprintf(" ON CONFLICT (%s) DO UPDATE SET %s", updateKey, strings.Join(assignments, ", ")), nil
 	default:
-		return "", fmt.Errorf("UpdateKey ainda não suportado para destino %s", driver)
+		return "", gl.Errorf("UpdateKey ainda não suportado para destino %s", driver)
 	}
 }
 
@@ -289,7 +289,7 @@ func executeInsertBatch(tx *sql.Tx, config Config, data []Data) error {
 			return err
 		}
 
-		insertQuery := fmt.Sprintf(
+		insertQuery := gl.Sprintf(
 			"INSERT INTO %s (%s) VALUES (%s)%s",
 			config.DestinationTable,
 			strings.Join(columns, ", "),
@@ -464,20 +464,20 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 
 	var createTableQuery string
 	var fieldsDest = make(map[string]string)
-	createTableQuery = fmt.Sprintf("CREATE TABLE IF NOT EXISTS %s (", config.DestinationTable)
+	createTableQuery = gl.Sprintf("CREATE TABLE IF NOT EXISTS %s (", config.DestinationTable)
 	for fieldName, fieldType := range fields {
 		typeName := GetVendorSqlType(
 			config.DestinationType,
 			fieldType,
 		)
 		if typeName == "" {
-			gl.Log("error", fmt.Sprintf("tipo de campo não mapeado: %s", fieldType))
+			gl.Errorf("tipo de campo não mapeado: %s", fieldType)
 			return fmt.Errorf("tipo de campo não mapeado: %s", fieldType)
 		}
 		if config.UpdateKey == fieldName {
-			createTableQuery += fmt.Sprintf("%s %s %s, ", fieldName, typeName, "PRIMARY KEY")
+			createTableQuery += gl.Sprintf("%s %s %s, ", fieldName, typeName, "PRIMARY KEY")
 		} else {
-			createTableQuery += fmt.Sprintf("%s %s, ", fieldName, typeName)
+			createTableQuery += gl.Sprintf("%s %s, ", fieldName, typeName)
 		}
 		fieldsDest[fieldName] = typeName
 	}
@@ -487,7 +487,7 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 
 	_, createTableQueryErr := db.Exec(createTableQuery)
 	if createTableQueryErr != nil {
-		gl.Log("error", fmt.Sprintf("falha ao criar a tabela: %v", createTableQueryErr))
+		gl.Errorf("falha ao criar a tabela: %v", createTableQueryErr)
 		return createTableQueryErr
 	}
 
@@ -506,7 +506,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.SourceType, config.SourceConnectionString)
 		if dbErr != nil {
-			gl.Log("error", fmt.Sprintf("falha ao conectar ao banco de dados: %v", dbErr))
+			gl.Errorf("falha ao conectar ao banco de dados: %v", dbErr)
 			return nil, nil, dbErr
 		}
 		shouldCloseDB = true
@@ -521,7 +521,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 
 	rows, queryErr := db.Query(config.SQLQuery)
 	if queryErr != nil {
-		gl.Log("error", fmt.Sprintf("falha ao executar a query SQL: %v", queryErr))
+		gl.Errorf("falha ao executar a query SQL: %v", queryErr)
 		return nil, nil, queryErr
 	}
 	defer func(rows *sql.Rows) {
@@ -531,7 +531,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 	var data []Data
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
-		gl.Log("error", fmt.Sprintf("falha ao obter colunas: %v", columnsErr))
+		gl.Errorf("falha ao obter colunas: %v", columnsErr)
 		return nil, nil, columnsErr
 	}
 
@@ -543,7 +543,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 		}
 
 		if scanErr := rows.Scan(rowPointers...); scanErr != nil {
-			gl.Log("error", fmt.Sprintf("falha ao escanear os dados da linha: %v", scanErr))
+			gl.Errorf("falha ao escanear os dados da linha: %v", scanErr)
 			return nil, nil, scanErr
 		}
 
@@ -806,7 +806,7 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 
 	tx, txErr := db.Begin()
 	if txErr != nil {
-		gl.Log("error", fmt.Sprintf("Failed to start transaction: %v", txErr))
+		gl.Errorf("Failed to start transaction: %v", txErr)
 		return fmt.Errorf("Failed to start transaction: %v", txErr)
 	}
 	if err := executeInsertBatch(tx, config, transformedData); err != nil {
@@ -830,7 +830,7 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 	// Carregar a configuração
 	config, loadConfigErr := LoadConfigFile(configPath)
 	if loadConfigErr != nil {
-		gl.Log("error", fmt.Sprintf("falha ao carregar a configuração: %v", loadConfigErr))
+		gl.Errorf("falha ao carregar a configuração: %v", loadConfigErr)
 		return loadConfigErr
 	}
 
@@ -860,7 +860,7 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 	// Extrair os dados, transformar e carregar no destino
 	loadDataErr := LoadData(nil, config)
 	if loadDataErr != nil {
-		gl.Log("error", fmt.Sprintf("falha ao carregar os dados no destino: %v", loadDataErr))
+		gl.Errorf("falha ao carregar os dados no destino: %v", loadDataErr)
 		return loadDataErr
 	}
 
@@ -875,7 +875,7 @@ func ExecuteIncrementalETL(config Config) error {
 
 	// Set default state file if not provided
 	if config.IncrementalSync.StateFile == "" {
-		config.IncrementalSync.StateFile = fmt.Sprintf("/tmp/getl-state-%s-%s.json",
+		config.IncrementalSync.StateFile = gl.Sprintf("/tmp/getl-state-%s-%s.json",
 			config.SourceTable, config.DestinationTable)
 	}
 
@@ -893,7 +893,7 @@ func ExecuteIncrementalETL(config Config) error {
 
 // executeTimestampIncrementalETL performs timestamp-based incremental sync
 func executeTimestampIncrementalETL(config Config) error {
-	gl.Log("info", fmt.Sprintf("Executing timestamp-based incremental sync on field: %s", config.IncrementalSync.TimestampField))
+	gl.Infof("Executing timestamp-based incremental sync on field: %s", config.IncrementalSync.TimestampField)
 
 	// Load last sync state
 	lastSyncValue, err := loadLastSyncValue(config.IncrementalSync.StateFile)
@@ -905,17 +905,17 @@ func executeTimestampIncrementalETL(config Config) error {
 	// Modify the SQL query to include timestamp filter
 	originalQuery := config.SQLQuery
 	if originalQuery == "" {
-		originalQuery = fmt.Sprintf("SELECT * FROM %s", config.SourceTable)
+		originalQuery = gl.Sprintf("SELECT * FROM %s", config.SourceTable)
 	}
 
 	if lastSyncValue != nil {
-		whereClause := fmt.Sprintf("%s > '%v'", config.IncrementalSync.TimestampField, lastSyncValue)
+		whereClause := gl.Sprintf("%s > '%v'", config.IncrementalSync.TimestampField, lastSyncValue)
 		if strings.Contains(strings.ToUpper(originalQuery), "WHERE") {
 			config.SQLQuery = originalQuery + " AND " + whereClause
 		} else {
 			config.SQLQuery = originalQuery + " WHERE " + whereClause
 		}
-		gl.Log("info", fmt.Sprintf("Resuming from last sync: %v", lastSyncValue))
+		gl.Infof("Resuming from last sync: %v", lastSyncValue)
 	} else {
 		config.SQLQuery = originalQuery
 		gl.Log("info", "First time sync - processing all records")
@@ -923,10 +923,10 @@ func executeTimestampIncrementalETL(config Config) error {
 
 	// Add ORDER BY to ensure consistent results
 	if !strings.Contains(strings.ToUpper(config.SQLQuery), "ORDER BY") {
-		config.SQLQuery += fmt.Sprintf(" ORDER BY %s", config.IncrementalSync.TimestampField)
+		config.SQLQuery += gl.Sprintf(" ORDER BY %s", config.IncrementalSync.TimestampField)
 	}
 
-	gl.Log("info", fmt.Sprintf("Incremental query: %s", config.SQLQuery))
+	gl.Infof("Incremental query: %s", config.SQLQuery)
 
 	// Execute the ETL with modified query
 	loadDataErr := LoadData(nil, config)
@@ -938,9 +938,9 @@ func executeTimestampIncrementalETL(config Config) error {
 	currentTime := time.Now().Format("2006-01-02 15:04:05")
 	saveErr := saveLastSyncValue(config.IncrementalSync.StateFile, currentTime)
 	if saveErr != nil {
-		gl.Log("error", fmt.Sprintf("Failed to save sync state: %v", saveErr))
+		gl.Errorf("Failed to save sync state: %v", saveErr)
 	} else {
-		gl.Log("info", fmt.Sprintf("Saved sync state: %s", currentTime))
+		gl.Infof("Saved sync state: %s", currentTime)
 	}
 
 	gl.Log("info", "Timestamp-based incremental sync completed successfully")
@@ -949,7 +949,7 @@ func executeTimestampIncrementalETL(config Config) error {
 
 // executePrimaryKeyIncrementalETL performs primary key-based incremental sync
 func executePrimaryKeyIncrementalETL(config Config) error {
-	gl.Log("info", fmt.Sprintf("Executing primary key-based incremental sync on field: %s", config.PrimaryKey))
+	gl.Infof("Executing primary key-based incremental sync on field: %s", config.PrimaryKey)
 
 	// Load last sync state
 	lastSyncValue, err := loadLastSyncValue(config.IncrementalSync.StateFile)
@@ -961,17 +961,17 @@ func executePrimaryKeyIncrementalETL(config Config) error {
 	// Modify the SQL query to include primary key filter
 	originalQuery := config.SQLQuery
 	if originalQuery == "" {
-		originalQuery = fmt.Sprintf("SELECT * FROM %s", config.SourceTable)
+		originalQuery = gl.Sprintf("SELECT * FROM %s", config.SourceTable)
 	}
 
 	if lastSyncValue != nil {
-		whereClause := fmt.Sprintf("%s > %v", config.PrimaryKey, lastSyncValue)
+		whereClause := gl.Sprintf("%s > %v", config.PrimaryKey, lastSyncValue)
 		if strings.Contains(strings.ToUpper(originalQuery), "WHERE") {
 			config.SQLQuery = originalQuery + " AND " + whereClause
 		} else {
 			config.SQLQuery = originalQuery + " WHERE " + whereClause
 		}
-		gl.Log("info", fmt.Sprintf("Resuming from last primary key: %v", lastSyncValue))
+		gl.Infof("Resuming from last primary key: %v", lastSyncValue)
 	} else {
 		config.SQLQuery = originalQuery
 		gl.Log("info", "First time sync - processing all records")
@@ -979,10 +979,10 @@ func executePrimaryKeyIncrementalETL(config Config) error {
 
 	// Add ORDER BY to ensure consistent results
 	if !strings.Contains(strings.ToUpper(config.SQLQuery), "ORDER BY") {
-		config.SQLQuery += fmt.Sprintf(" ORDER BY %s", config.PrimaryKey)
+		config.SQLQuery += gl.Sprintf(" ORDER BY %s", config.PrimaryKey)
 	}
 
-	gl.Log("info", fmt.Sprintf("Incremental query: %s", config.SQLQuery))
+	gl.Infof("Incremental query: %s", config.SQLQuery)
 
 	// Execute the ETL with modified query
 	loadDataErr := LoadData(nil, config)
@@ -1001,9 +1001,9 @@ func executePrimaryKeyIncrementalETL(config Config) error {
 
 	saveErr := saveLastSyncValue(config.IncrementalSync.StateFile, newSyncValue)
 	if saveErr != nil {
-		gl.Log("error", fmt.Sprintf("Failed to save sync state: %v", saveErr))
+		gl.Errorf("Failed to save sync state: %v", saveErr)
 	} else {
-		gl.Log("info", fmt.Sprintf("Saved sync state: %v", newSyncValue))
+		gl.Infof("Saved sync state: %v", newSyncValue)
 	}
 
 	gl.Log("info", "Primary key-based incremental sync completed successfully")
@@ -1067,7 +1067,7 @@ func ExecuteETLJobs() error {
 
 	jobsObj, jobsListErr := GetETLJobs()
 	if jobsListErr != nil {
-		gl.Log("error", fmt.Sprintf("falha ao buscar os trabalhos de GETl: %v", jobsListErr))
+		gl.Errorf("falha ao buscar os trabalhos de GETl: %v", jobsListErr)
 		return jobsListErr
 	}
 
@@ -1075,7 +1075,7 @@ func ExecuteETLJobs() error {
 	for _, job := range jobsList {
 		executeErr := ExecuteETL(job.Path(), job.OutputPath(), job.OutputFormat(), job.NeedCheck(), job.CheckMethod())
 		if executeErr != nil {
-			gl.Log("error", fmt.Sprintf("falha ao executar o trabalho de GETl: %v", executeErr))
+			gl.Errorf("falha ao executar o trabalho de GETl: %v", executeErr)
 			return executeErr
 		}
 	}
@@ -1090,21 +1090,21 @@ func formatValue(val interface{}) string {
 	}
 	switch v := val.(type) {
 	case string:
-		return fmt.Sprintf("'%s'", v)
+		return gl.Sprintf("'%s'", v)
 	case int, int8, int16, int32, int64:
-		return fmt.Sprintf("%d", v)
+		return gl.Sprintf("%d", v)
 	case uint, uint8, uint16, uint32, uint64:
-		return fmt.Sprintf("%d", v)
+		return gl.Sprintf("%d", v)
 	case float32, float64:
-		return fmt.Sprintf("%f", v)
+		return gl.Sprintf("%f", v)
 	case bool:
 		if v {
 			return "TRUE"
 		}
 		return "FALSE"
 	case time.Time:
-		return fmt.Sprintf("'%s'", v.Format("2006-01-02 15:04:05"))
+		return gl.Sprintf("'%s'", v.Format("2006-01-02 15:04:05"))
 	default:
 	}
-	return fmt.Sprintf("'%v'", val)
+	return gl.Sprintf("'%v'", val)
 }

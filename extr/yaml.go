@@ -5,7 +5,7 @@ import (
 	"os"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 	"gopkg.in/yaml.v2"
 )
 

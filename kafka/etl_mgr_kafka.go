@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	s "github.com/kubex-ecosystem/getl/sql"
+	gl "github.com/kubex-ecosystem/logz"
 	"github.com/segmentio/kafka-go"
 )
 

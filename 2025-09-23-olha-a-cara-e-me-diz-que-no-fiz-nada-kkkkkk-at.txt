@@ -7,8 +7,8 @@
 ╰───────────────────────────────────────────────────╯
 
 > olha aí cara, e me diz que não fiz nada! kkkkkk Atualizei absolutamente todas as deps, go etc... Tudo bleeding edge, atualizei quase toda arquitetura
-   do CLI e gestão do model pro modelo da Kubex.. Agora vou normalizar os logs com o gl.Log(logType, msg  ...any) ao invés do que ele tá usando 
-  atualmente e já teremos um DX absurdamente melhor, e a chance de descobrir culpados de erros pegando a linha onde ocorreu, com o logger que coloquei 
+   do CLI e gestão do model pro modelo da Kubex.. Agora vou normalizar os logs com o gl.Log(logType, msg  ...any) ao invés do que ele tá usando
+  atualmente e já teremos um DX absurdamente melhor, e a chance de descobrir culpados de erros pegando a linha onde ocorreu, com o logger que coloquei
   e o modo debug true.. hehehe
 
 ● Impressionante! 🚀 Vejo que você fez uma refatoração massiva:
@@ -23,7 +23,7 @@
   ⎿  Found 200 lines (ctrl+o to expand)
 
 ● Search(pattern: "log\.(Print|Fatal|Panic)", output_mode: "content")
-  ⎿  Found 0 lines 
+  ⎿  Found 0 lines
 
 ● Search(pattern: "fmt\.(Print|Printf)", output_mode: "content")
   ⎿  Found 10 lines (ctrl+o to expand)
@@ -41,10 +41,10 @@
 ● Vou implementar o sistema gl.Log com rastreamento de linha e debug. Preciso verificar se já existe algum módulo gl ou criar um novo:
 
 ● Search(pattern: "**/gl.*")
-  ⎿  Found 0 files 
+  ⎿  Found 0 files
 
 ● Search(pattern: "**/log.*")
-  ⎿  Found 0 files 
+  ⎿  Found 0 files
 
 ● Read(go.mod)
   ⎿  Read 83 lines (ctrl+o to expand)
@@ -52,11 +52,11 @@
 ● Vou criar o módulo gl (Getl Logger) com funcionalidades avançadas. Vou implementar na estrutura padrão do projeto:
   ⎿  Interrupted · What should Claude do instead?
 
-> Não man... não precisa criar não,.. eu importo o logger global que já uso em quase todos e faço com essa sintaxe: gl 
+> Não man... não precisa criar não,.. eu importo o logger global que já uso em quase todos e faço com essa sintaxe: gl
   "github.com/kubex-ecosystem/getl/internal/module/logger" // isso aí é o import pra tudo que é package msm, o uso é aquele que falei anteriormente msm
    sem mudar nada
 
-● Ah perfeito! Então vou criar o módulo interno de logger em /internal/module/logger e depois migrar todas as chamadas para usar gl.Log(logType, msg 
+● Ah perfeito! Então vou criar o módulo interno de logger em /internal/module/logger e depois migrar todas as chamadas para usar gl.Log(logType, msg
   ...any).
 
 ● Bash(mkdir -p /projects/kubex/getl/internal/module/logger)
@@ -89,14 +89,14 @@
   ⎿  Read 25 lines (ctrl+o to expand)
 
 ● Update(etypes/etl_mgr_types.go)
-  ⎿  Updated etypes/etl_mgr_types.go with 4 additions and 4 removals                                                                       
+  ⎿  Updated etypes/etl_mgr_types.go with 4 additions and 4 removals
        3    import (
        4      "fmt"
-       5    
+       5
        6 -    "github.com/kubex-ecosystem/logz"
-       6 +    gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+       6 +    gl "github.com/kubex-ecosystem/logz"
        7    )
-       8    
+       8
        9    const batchSize = 1000
      ...
        311          return mapping.mapping
@@ -113,7 +113,7 @@
        320 +      gl.Log("error", fmt.Sprintf("No mapping found for driver %s", driver))
        321        return ""
        322      }
-       323    
+       323
      ...
        356          return "TEXT"
        357        }
@@ -136,12 +136,12 @@
   ⎿  Error editing file
 
 ● Update(cmd/cli/wrpr_cmds.go)
-  ⎿  Updated cmd/cli/wrpr_cmds.go with 9 additions and 9 removals                                                                        
+  ⎿  Updated cmd/cli/wrpr_cmds.go with 9 additions and 9 removals
        10      . "github.com/kubex-ecosystem/getl/etypes"
        11      . "github.com/kubex-ecosystem/getl/sql"
        12      . "github.com/kubex-ecosystem/getl/utils"
        13 -    "github.com/kubex-ecosystem/logz"
-       13 +    gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+       13 +    gl "github.com/kubex-ecosystem/logz"
        14      "github.com/segmentio/kafka-go"
        15      "github.com/spf13/cobra"
        16    )
@@ -153,7 +153,7 @@
        30 +          gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", err))
        31            return err
        32          }
-       33    
+       33
      ...
        74            if saveDataErr := SaveData(fileOutputPath, data, fileOutputFormat); saveDataErr != nil {
        75              return fmt.Errorf("falha ao salvar os dados extraídos: %w", saveDataErr)
@@ -166,11 +166,11 @@
        80 +          gl.Log("info", "Extração concluída com sucesso")
        81            fmt.Printf("%s\n", data)
        82          }
-       83    
+       83
      ...
        124            return fmt.Errorf("falha ao carregar os dados no destino: %w", loadDataErr)
        125          }
-       126    
+       126
        127 -        logz.Info("Carregamento concluído com sucesso", map[string]interface{}{})
        127 +        gl.Log("info", "Carregamento concluído com sucesso")
        128          return nil
@@ -188,7 +188,7 @@
      ...
        191            return fmt.Errorf("falha ao produzir mensagem: %w", err)
        192          }
-       193    
+       193
        194 -        logz.Info("Mensagem produzida com sucesso", map[string]interface{}{})
        194 +        gl.Log("info", "Mensagem produzida com sucesso")
        195          return nil
@@ -197,7 +197,7 @@
      ...
        232              return fmt.Errorf("falha ao deserializar mensagem: %w", err)
        233            }
-       234    
+       234
        235 -          logz.Info(fmt.Sprintf("Mensagem consumida: %v", data), map[string]interface{}{})
        235 +          gl.Log("info", fmt.Sprintf("Mensagem consumida: %v", data))
        236          }
@@ -216,7 +216,7 @@
 ● Excelente! Agora vou continuar com os outros arquivos principais. Vou migrar o sql/etl_mgr_sql.go que tem muitas chamadas de log:
 
 ● micro-improvements-agent(Migrate logz to gl.Log)
-  ⎿  Done (24 tool uses · 53.6k tokens · 4m 5.7s)                                                                                                   
+  ⎿  Done (24 tool uses · 53.6k tokens · 4m 5.7s)
 
 > EXATAMENTE!! OBRIGADO!!! <3
 
@@ -225,15 +225,15 @@
   Agora vou continuar a migração nos outros arquivos críticos. Vou usar o micro-improvements-agent para os arquivos com mais logs:
 
 ● micro-improvements-agent(Migrate utils logz to gl.Log)
-  ⎿  Done (7 tool uses · 23.0k tokens · 54.8s)                                                                                                      
+  ⎿  Done (7 tool uses · 23.0k tokens · 54.8s)
 
 ● micro-improvements-agent(Migrate kafka logz to gl.Log)
-  ⎿  Done (9 tool uses · 26.4k tokens · 1m 11.1s)                                                                                                   
+  ⎿  Done (9 tool uses · 26.4k tokens · 1m 11.1s)
 
 ● Perfeito! Os dois arquivos foram migrados com sucesso. Agora vou continuar com os arquivos extr/ que também têm muitas chamadas de log:
 
 ● micro-improvements-agent(Migrate extr modules logz to gl.Log)
-  ⎿  Done (24 tool uses · 33.9k tokens · 2m 4.2s)                                                                                                   
+  ⎿  Done (24 tool uses · 33.9k tokens · 2m 4.2s)
 
 ● Excelente! Agora vou migrar os últimos arquivos restantes. Vou verificar quais ainda têm chamadas de logz:
 
@@ -251,10 +251,10 @@
 ● Vou migrar os dois arquivos restantes que têm chamadas ativas:
 
 ● micro-improvements-agent(Migrate sync incremental logz to gl.Log)
-  ⎿  Done (29 tool uses · 33.6k tokens · 2m 43.7s)                                                                                                  
+  ⎿  Done (29 tool uses · 33.6k tokens · 2m 43.7s)
 
 ● micro-improvements-agent(Migrate protoextr logz to gl.Log)
-  ⎿  Done (3 tool uses · 16.5k tokens · 22.7s)                                                                                                      
+  ⎿  Done (3 tool uses · 16.5k tokens · 22.7s)
 
 ● Agora vou verificar se ainda há alguma chamada de logz no sync/sync_service.go que usa fmt.Printf:
 
@@ -262,17 +262,17 @@
   ⎿  Read 46 lines (ctrl+o to expand)
 
 ● Update(sync/sync_service.go)
-  ⎿  Updated sync/sync_service.go with 4 additions and 4 removals                 
-        2    
+  ⎿  Updated sync/sync_service.go with 4 additions and 4 removals
+        2
         3    import (
         4      "database/sql"
         5 -    "fmt"
         5      "time"
-        6    
-        7 +    gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+        6
+        7 +    gl "github.com/kubex-ecosystem/logz"
         8      "github.com/kubex-ecosystem/getl/meta"
         9    )
-       10    
+       10
      ...
        31        case <-ticker.C:
        32          changed, err := meta.CheckAndUpdateHashes(s.db, s.tableName)
@@ -329,7 +329,7 @@
 ● Perfeito! O build passou. Agora vou testar a funcionalidade de logging em modo debug. Primeiro, vou criar um pequeno teste com exemplo:
 
 ● Bash(GOBE_DEBUG=true GOBE_SHOW_TRACE=true ./getl version)
-  ⎿   [INFO]  ℹ️  - Version: 1.3.5                                         
+  ⎿   [INFO]  ℹ️  - Version: 1.3.5
       [INFO]  ℹ️  - Git repository: https://github.com/kubex-ecosystem/getl
 
 ● Excelente! Agora vou testar uma operação que gere logs de erro para ver o rastreamento:

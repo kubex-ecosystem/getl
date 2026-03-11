@@ -7,9 +7,9 @@ import (
 	"fmt"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	. "github.com/kubex-ecosystem/getl/sql"
 	. "github.com/kubex-ecosystem/getl/utils"
+	gl "github.com/kubex-ecosystem/logz"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cobra"
 )
@@ -26,7 +26,7 @@ func VacuumCmd() *cobra.Command {
 		Long:    "Este comando executa a limpeza de compactação de registros, indexação e otimização de banco de dados SQLite.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := ValidateArgs(dbFilePath); err != nil {
-				gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", err))
+				gl.Errorf("falha ao validar argumentos: %v", err)
 				return err
 			}
 
@@ -77,7 +77,7 @@ func ExtractCmd() *cobra.Command {
 			} else {
 				// Imprimir os dados extraídos no console
 				gl.Log("info", "Extração concluída com sucesso")
-				fmt.Printf("%s\n", data)
+				gl.Printf("%s\n", data)
 			}
 
 			return nil
@@ -137,7 +137,7 @@ func SyncCmd() *cobra.Command {
 		Long:    "Este comando executa as etapas de extração, transformação e carregamento de dados em sequência.",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if validateArgsErr := ValidateArgs(fileConfigPath); validateArgsErr != nil {
-				gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr))
+				gl.Errorf("falha ao validar argumentos: %v", validateArgsErr)
 				return validateArgsErr
 			}
 			return ExecuteETL(fileConfigPath, fileOutputPath, outputFormat, needCheck, checkMethod)
@@ -220,7 +220,7 @@ func ConsumeCmd() *cobra.Command {
 					return fmt.Errorf("falha ao deserializar mensagem: %v", err)
 				}
 
-				gl.Log("info", fmt.Sprintf("Mensagem consumida: %v", data))
+				gl.Infof("Mensagem consumida: %v", data)
 			}
 		},
 	}
@@ -246,7 +246,7 @@ func DataTableCmd() *cobra.Command {
 		Short:   "Carrega os dados de uma tabela no banco de origem",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if validateArgsErr := ValidateArgs(fileConfigPath); validateArgsErr != nil {
-				gl.Log("error", fmt.Sprintf("falha ao validar argumentos: %v", validateArgsErr))
+				gl.Errorf("falha ao validar argumentos: %v", validateArgsErr)
 				return validateArgsErr
 			}
 			return ShowDataTableFromConfig(fileConfigPath, export, outputPath, outputFormat)

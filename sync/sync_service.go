@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	"github.com/kubex-ecosystem/getl/meta"
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 type SyncService struct {

@@ -10,7 +10,7 @@ import (
 	"time"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 // IncrementalSyncManager handles incremental synchronization between databases
@@ -46,7 +46,7 @@ func (ism *IncrementalSyncManager) ExecuteIncrementalSync() error {
 		return ism.executeFullSync()
 	}
 
-	gl.Log("info", fmt.Sprintf("Starting incremental sync with strategy: %s", ism.config.IncrementalSync.Strategy))
+	gl.Infof("Starting incremental sync with strategy: %s", ism.config.IncrementalSync.Strategy)
 
 	switch ism.config.IncrementalSync.Strategy {
 	case TimestampBased:
@@ -71,13 +71,13 @@ func (ism *IncrementalSyncManager) executeTimestampBasedSync() error {
 	// Build incremental query
 	var whereClause string
 	if ism.state.LastSyncValue != nil {
-		whereClause = fmt.Sprintf("WHERE %s > '%v'", ism.config.IncrementalSync.TimestampField, ism.state.LastSyncValue)
+		whereClause = gl.Sprintf("WHERE %s > '%v'", ism.config.IncrementalSync.TimestampField, ism.state.LastSyncValue)
 	}
 
 	// Update the SQL query to include the WHERE clause
 	originalQuery := ism.config.SQLQuery
 	if originalQuery == "" {
-		originalQuery = fmt.Sprintf("SELECT * FROM %s", ism.config.SourceTable)
+		originalQuery = gl.Sprintf("SELECT * FROM %s", ism.config.SourceTable)
 	}
 
 	if whereClause != "" {
@@ -88,7 +88,7 @@ func (ism *IncrementalSyncManager) executeTimestampBasedSync() error {
 		}
 	}
 
-	gl.Log("info", fmt.Sprintf("Incremental query: %s", ism.config.SQLQuery))
+	gl.Infof("Incremental query: %s", ism.config.SQLQuery)
 
 	// Execute the sync
 	err := ism.executeSyncWithQuery()
@@ -111,13 +111,13 @@ func (ism *IncrementalSyncManager) executePrimaryKeyBasedSync() error {
 	// Build incremental query based on last primary key value
 	var whereClause string
 	if ism.state.LastSyncValue != nil {
-		whereClause = fmt.Sprintf("WHERE %s > %v", ism.config.PrimaryKey, ism.state.LastSyncValue)
+		whereClause = gl.Sprintf("WHERE %s > %v", ism.config.PrimaryKey, ism.state.LastSyncValue)
 	}
 
 	// Update the SQL query
 	originalQuery := ism.config.SQLQuery
 	if originalQuery == "" {
-		originalQuery = fmt.Sprintf("SELECT * FROM %s", ism.config.SourceTable)
+		originalQuery = gl.Sprintf("SELECT * FROM %s", ism.config.SourceTable)
 	}
 
 	if whereClause != "" {
@@ -130,10 +130,10 @@ func (ism *IncrementalSyncManager) executePrimaryKeyBasedSync() error {
 
 	// Add ORDER BY to ensure consistent results
 	if !strings.Contains(strings.ToUpper(ism.config.SQLQuery), "ORDER BY") {
-		ism.config.SQLQuery += fmt.Sprintf(" ORDER BY %s", ism.config.PrimaryKey)
+		ism.config.SQLQuery += gl.Sprintf(" ORDER BY %s", ism.config.PrimaryKey)
 	}
 
-	gl.Log("info", fmt.Sprintf("Incremental query: %s", ism.config.SQLQuery))
+	gl.Infof("Incremental query: %s", ism.config.SQLQuery)
 
 	// Execute the sync
 	err := ism.executeSyncWithQuery()
@@ -161,7 +161,7 @@ func (ism *IncrementalSyncManager) executeFullSync() error {
 
 	// Reset the SQL query to original or default
 	if ism.config.SQLQuery == "" {
-		ism.config.SQLQuery = fmt.Sprintf("SELECT * FROM %s", ism.config.SourceTable)
+		ism.config.SQLQuery = gl.Sprintf("SELECT * FROM %s", ism.config.SourceTable)
 	}
 
 	return ism.executeSyncWithQuery()
@@ -192,7 +192,7 @@ func (ism *IncrementalSyncManager) updateTimestampState() error {
 
 	// For now, use current time as placeholder
 	ism.state.LastSyncValue = time.Now().Format(time.RFC3339)
-	gl.Log("info", fmt.Sprintf("Updated timestamp state to: %v", ism.state.LastSyncValue))
+	gl.Infof("Updated timestamp state to: %v", ism.state.LastSyncValue)
 
 	return ism.saveState()
 }
@@ -211,7 +211,7 @@ func (ism *IncrementalSyncManager) updatePrimaryKeyState() error {
 		}
 	}
 
-	gl.Log("info", fmt.Sprintf("Updated primary key state to: %v", ism.state.LastSyncValue))
+	gl.Infof("Updated primary key state to: %v", ism.state.LastSyncValue)
 
 	return ism.saveState()
 }
@@ -244,8 +244,8 @@ func (ism *IncrementalSyncManager) loadState() error {
 		return fmt.Errorf("failed to parse state file: %v", err)
 	}
 
-	gl.Log("info", fmt.Sprintf("Loaded sync state from: %s", ism.config.IncrementalSync.StateFile))
-	gl.Log("info", fmt.Sprintf("Last sync value: %v", ism.state.LastSyncValue))
+	gl.Infof("Loaded sync state from: %s", ism.config.IncrementalSync.StateFile)
+	gl.Infof("Last sync value: %v", ism.state.LastSyncValue)
 
 	return nil
 }
@@ -273,7 +273,7 @@ func (ism *IncrementalSyncManager) saveState() error {
 		return fmt.Errorf("failed to write state file: %v", err)
 	}
 
-	gl.Log("info", fmt.Sprintf("Saved sync state to: %s", ism.config.IncrementalSync.StateFile))
+	gl.Infof("Saved sync state to: %s", ism.config.IncrementalSync.StateFile)
 
 	return nil
 }
@@ -283,7 +283,7 @@ func generateRowHash(data Data) string {
 	// Convert data to JSON and hash it
 	jsonData, _ := json.Marshal(data)
 	hash := md5.Sum(jsonData)
-	return fmt.Sprintf("%x", hash)
+	return gl.Sprintf("%x", hash)
 }
 
 // GetSyncStatistics returns current sync statistics

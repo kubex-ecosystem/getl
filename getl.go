@@ -2,7 +2,6 @@ package getl
 
 import (
 	"database/sql"
-	"fmt"
 
 	e "github.com/kubex-ecosystem/getl/edi"
 	t "github.com/kubex-ecosystem/getl/etypes"
@@ -102,7 +101,7 @@ func (g *Getl) SaveData(config t.Config) error {
 		l.Error("Error saving data", map[string]interface{}{})
 		return saveErr
 	}
-	l.Info(fmt.Sprintf("Data saved to %s", config.OutputPath), map[string]interface{}{})
+	l.Infof("Data saved to %s", config.OutputPath)
 	return nil
 }
 

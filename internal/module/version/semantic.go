@@ -12,11 +12,10 @@ import (
 	"time"
 
 	manifest "github.com/kubex-ecosystem/getl/internal/module/info"
-	"github.com/kubex-ecosystem/getl/internal/module/logger"
+	gl "github.com/kubex-ecosystem/logz"
 	"github.com/spf13/cobra"
 )
 
-var gl = logger.GetLogger[ServiceImpl](nil)
 var (
 	info manifest.Manifest
 	vrs  Service
@@ -104,7 +103,7 @@ func getLatestTag(repoURL string) (string, error) {
 		}
 	}
 
-	apiURL := fmt.Sprintf("%s/tags", repoURL)
+	apiURL := gl.Sprintf("%s/tags", repoURL)
 	resp, err := http.Get(apiURL)
 	if err != nil {
 		return "", err
@@ -386,7 +385,7 @@ func GetGitRepositoryModelURL() string {
 func GetVersionInfo() string {
 	gl.Log("info", "Version: "+GetVersion())
 	gl.Log("info", "Git repository: "+GetGitRepositoryModelURL())
-	return fmt.Sprintf("Version: %s\nGit repository: %s", GetVersion(), GetGitRepositoryModelURL())
+	return gl.Sprintf("Version: %s\nGit repository: %s", GetVersion(), GetGitRepositoryModelURL())
 }
 func GetLatestVersionFromGit() string {
 	if info.IsPrivate() {
@@ -415,7 +414,7 @@ func GetLatestVersionFromGit() string {
 		gl.Log("error", "Error fetching latest version: "+response.Status)
 		gl.Log("error", "Url: "+gitURLWithoutGit+"/releases/latest")
 		body, _ := io.ReadAll(response.Body)
-		return fmt.Sprintf("Error: %s\nResponse: %s", response.Status, string(body))
+		return gl.Sprintf("Error: %s\nResponse: %s", response.Status, string(body))
 	}
 
 	tag := strings.Split(response.Request.URL.Path, "/")
@@ -437,10 +436,10 @@ func GetVersionInfoWithLatestAndCheck() string {
 	}
 	if GetVersion() == GetLatestVersionFromGit() {
 		gl.Log("info", "You are using the latest version.")
-		return fmt.Sprintf("You are using the latest version.\n%s\n%s", GetVersionInfo(), GetLatestVersionInfo())
+		return gl.Sprintf("You are using the latest version.\n%s\n%s", GetVersionInfo(), GetLatestVersionInfo())
 	} else {
 		gl.Log("warn", "You are using an outdated version.")
-		return fmt.Sprintf("You are using an outdated version.\n%s\n%s", GetVersionInfo(), GetLatestVersionInfo())
+		return gl.Sprintf("You are using an outdated version.\n%s\n%s", GetVersionInfo(), GetLatestVersionInfo())
 	}
 }
 func CliCommand() *cobra.Command {
