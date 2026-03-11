@@ -22,17 +22,17 @@ func createTrigger(db *sql.DB, dbType string, trigger Trigger) error {
 
 	t, err := template.New("trigger").Parse(tmpl)
 	if err != nil {
-		return fmt.Errorf("falha ao analisar template de trigger: %w", err)
+		return fmt.Errorf("falha ao analisar template de trigger: %v", err)
 	}
 
 	var query bytes.Buffer
 	if err := t.Execute(&query, trigger); err != nil {
-		return fmt.Errorf("falha ao executar template de trigger: %w", err)
+		return fmt.Errorf("falha ao executar template de trigger: %v", err)
 	}
 
 	_, err = db.Exec(query.String())
 	if err != nil {
-		return fmt.Errorf("falha ao criar trigger: %w", err)
+		return fmt.Errorf("falha ao criar trigger: %v", err)
 	}
 
 	return nil

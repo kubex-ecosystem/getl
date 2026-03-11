@@ -1,6 +1,6 @@
 module github.com/kubex-ecosystem/getl
 
-go 1.25.1
+go 1.26.1
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0

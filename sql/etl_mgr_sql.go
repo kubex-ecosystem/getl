@@ -31,7 +31,7 @@ import (
 func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath string, outputFormat string) error {
 	config, err := LoadConfigFile(fileConfigPath)
 	if err != nil {
-		return fmt.Errorf("falha ao carregar configuração da fonte: %w", err)
+		return fmt.Errorf("falha ao carregar configuração da fonte: %v", err)
 	}
 
 	var sqlQuery string
@@ -41,7 +41,7 @@ func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath stri
 		fields := []string{"*"} // Ajuste conforme necessário
 		sqlQuery, _, err = BuilExtractdQuery(config, fields)
 		if err != nil {
-			return fmt.Errorf("falha ao construir a consulta SQL: %w", err)
+			return fmt.Errorf("falha ao construir a consulta SQL: %v", err)
 		}
 	}
 
@@ -66,7 +66,7 @@ func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath stri
 
 		exportErr := SaveData(exportPath, data, outputFormat)
 		if exportErr != nil {
-			return fmt.Errorf("falha ao exportar dados para arquivo: %w", exportErr)
+			return fmt.Errorf("falha ao exportar dados para arquivo: %v", exportErr)
 		}
 		return nil
 	}
@@ -378,17 +378,17 @@ func SaveData(filePath string, data []Data, outputFormat string) error {
 	case "json":
 		if saveDataErr := SaveDataToJSON(filePath, data); saveDataErr != nil {
 			gl.Log("error", "Failed to save data to JSON: "+saveDataErr.Error())
-			return fmt.Errorf("Failed to save data to JSON: %w", saveDataErr)
+			return fmt.Errorf("Failed to save data to JSON: %v", saveDataErr)
 		}
 	case "yaml":
 		if saveDataErr := SaveDataToYAML(filePath, data); saveDataErr != nil {
 			gl.Log("error", "Failed to save data to YAML: "+saveDataErr.Error())
-			return fmt.Errorf("Failed to save data to YAML: %w", saveDataErr)
+			return fmt.Errorf("Failed to save data to YAML: %v", saveDataErr)
 		}
 	case "xml":
 		if saveDataErr := SaveDataToXML(filePath, data); saveDataErr != nil {
 			gl.Log("error", "Failed to save data to XML: "+saveDataErr.Error())
-			return fmt.Errorf("Failed to save data to XML: %w", saveDataErr)
+			return fmt.Errorf("Failed to save data to XML: %v", saveDataErr)
 		}
 	default:
 		gl.Log("error", "formato de saída inválido")
@@ -428,13 +428,13 @@ func SaveDataToXML(filePath string, data []Data) error {
 
 	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
 		gl.Log("error", "Failed to ensure file: "+ensureFileErr.Error())
-		return fmt.Errorf("Failed to ensure file: %w", ensureFileErr)
+		return fmt.Errorf("Failed to ensure file: %v", ensureFileErr)
 	}
 
 	file, openFileErr := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if openFileErr != nil {
 		gl.Log("error", "Failed to open file: "+openFileErr.Error())
-		return fmt.Errorf("Failed to open file: %w", openFileErr)
+		return fmt.Errorf("Failed to open file: %v", openFileErr)
 	}
 
 	defer func(file *os.File) {
@@ -473,7 +473,7 @@ func SaveDataToXML(filePath string, data []Data) error {
 
 	if encodeErr := encoder.Encode(xmlData); encodeErr != nil {
 		gl.Log("error", "Failed to encode data: "+encodeErr.Error())
-		return fmt.Errorf("Failed to encode data: %w", encodeErr)
+		return fmt.Errorf("Failed to encode data: %v", encodeErr)
 	}
 
 	return nil
@@ -526,13 +526,13 @@ func SaveDataToJSON(filePath string, data []Data) error {
 
 	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
 		gl.Log("error", "Failed to ensure file: "+ensureFileErr.Error())
-		return fmt.Errorf("Failed to ensure file: %w", ensureFileErr)
+		return fmt.Errorf("Failed to ensure file: %v", ensureFileErr)
 	}
 
 	file, openFileErr := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
 	if openFileErr != nil {
 		gl.Log("error", "Failed to open file: "+openFileErr.Error())
-		return fmt.Errorf("Failed to open file: %w", openFileErr)
+		return fmt.Errorf("Failed to open file: %v", openFileErr)
 	}
 
 	defer func(file *os.File) {
@@ -543,7 +543,7 @@ func SaveDataToJSON(filePath string, data []Data) error {
 
 	if encodeErr := encoder.Encode(data); encodeErr != nil {
 		gl.Log("error", "Failed to encode data: "+encodeErr.Error())
-		return fmt.Errorf("Failed to encode data: %w", encodeErr)
+		return fmt.Errorf("Failed to encode data: %v", encodeErr)
 	}
 
 	return nil
@@ -621,7 +621,7 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 	tx, txErr := db.Begin()
 	if txErr != nil {
 		gl.Log("error", fmt.Sprintf("Failed to start transaction: %v", txErr))
-		return fmt.Errorf("Failed to start transaction: %w", txErr)
+		return fmt.Errorf("Failed to start transaction: %v", txErr)
 	}
 	var insertQuery string
 	for _, row := range transformedData {
@@ -665,14 +665,14 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 			_ = tx.Rollback()
 			//logz.DebugLog(fmt.Sprintf("Failed to execute insert query: %v", insertQuery), map[string]interface{}{})
 			gl.Log("error", "Failed to execute insert query: "+err.Error())
-			return fmt.Errorf("Failed to execute insert query: %w", err)
+			return fmt.Errorf("Failed to execute insert query: %v", err)
 		}
 	}
 
 	if commitErr := tx.Commit(); commitErr != nil {
 		//logz.DebugLog(fmt.Sprintf("Failed to commit insertion: %v", insertQuery), map[string]interface{}{})
 		gl.Log("error", "Failed to commit transaction: "+commitErr.Error())
-		return fmt.Errorf("Failed to commit transaction: %w", commitErr)
+		return fmt.Errorf("Failed to commit transaction: %v", commitErr)
 	}
 
 	gl.Log("info", "Dados carregados no banco de destino com sucesso")
@@ -903,7 +903,7 @@ func saveLastSyncValue(stateFile string, value interface{}) error {
 func VacuumDatabase(dbPath string) error {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
-		return fmt.Errorf("falha ao abrir o banco de dados: %w", err)
+		return fmt.Errorf("falha ao abrir o banco de dados: %v", err)
 	}
 	defer func(db *sql.DB) {
 		_ = db.Close()
@@ -911,7 +911,7 @@ func VacuumDatabase(dbPath string) error {
 
 	_, err = db.Exec("VACUUM")
 	if err != nil {
-		return fmt.Errorf("falha ao executar VACUUM: %w", err)
+		return fmt.Errorf("falha ao executar VACUUM: %v", err)
 	}
 
 	gl.Log("info", "VACUUM executado com sucesso")

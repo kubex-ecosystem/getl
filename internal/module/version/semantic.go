@@ -90,7 +90,7 @@ func getLatestTag(repoURL string) (string, error) {
 		var err error
 		info, err = manifest.GetManifest()
 		if err != nil {
-			return "", fmt.Errorf("failed to get manifest: %w", err)
+			return "", fmt.Errorf("failed to get manifest: %v", err)
 		}
 	}
 	if info.IsPrivate() {

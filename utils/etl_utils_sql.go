@@ -55,7 +55,7 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 				if strValue, ok := value.(string); ok {
 					intValue, err := strconv.Atoi(strValue)
 					if err != nil {
-						return nil, fmt.Errorf("falha ao converter para inteiro: %w", err)
+						return nil, fmt.Errorf("falha ao converter para inteiro: %v", err)
 					}
 					transformedRow[t.DestinationField] = intValue
 				} else {
@@ -146,12 +146,12 @@ func BuilExtractdQuery(config Config, fields []string) (string, []interface{}, e
 func LoadConfigFile(fileConfigPath string) (Config, error) {
 	fileData, err := os.ReadFile(fileConfigPath)
 	if err != nil {
-		return Config{}, fmt.Errorf("falha ao ler o arquivo de configuração: %w", err)
+		return Config{}, fmt.Errorf("falha ao ler o arquivo de configuração: %v", err)
 	}
 
 	var config Config
 	if unmarshalErr := json.Unmarshal(fileData, &config); unmarshalErr != nil {
-		return Config{}, fmt.Errorf("falha ao processar JSON de configuração: %w", unmarshalErr)
+		return Config{}, fmt.Errorf("falha ao processar JSON de configuração: %v", unmarshalErr)
 	}
 
 	// Verificação de campos obrigatórios
@@ -167,19 +167,19 @@ func LoadConfigFile(fileConfigPath string) (Config, error) {
 func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery string) (*TableHandler, error) {
 	db, err := sql.Open(sourceType, sourceConnectionString)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao conectar ao banco de dados de origem: %w", err)
+		return nil, fmt.Errorf("falha ao conectar ao banco de dados de origem: %v", err)
 	}
 	defer db.Close()
 
 	rows, err := db.Query(sqlQuery)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao executar a consulta SQL: %w", err)
+		return nil, fmt.Errorf("falha ao executar a consulta SQL: %v", err)
 	}
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, fmt.Errorf("falha ao obter colunas: %w", err)
+		return nil, fmt.Errorf("falha ao obter colunas: %v", err)
 	}
 
 	var data [][]string
@@ -191,7 +191,7 @@ func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery s
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			return nil, fmt.Errorf("falha ao escanear linha: %w", err)
+			return nil, fmt.Errorf("falha ao escanear linha: %v", err)
 		}
 
 		var row []string
@@ -244,21 +244,21 @@ func GenerateConfigTemplate(filePath string) error {
 	if filePath == "" {
 		homeFilePath, filePathErr := utils.GetWorkDir()
 		if filePathErr != nil {
-			return fmt.Errorf("falha ao obter o diretório HOME: %w", filePathErr)
+			return fmt.Errorf("falha ao obter o diretório HOME: %v", filePathErr)
 		}
 		filePath = homeFilePath + "/.kubex/example_config.json"
 	}
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("falha ao criar o arquivo: %w", err)
+		return fmt.Errorf("falha ao criar o arquivo: %v", err)
 	}
 	defer file.Close()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(config); err != nil {
-		return fmt.Errorf("falha ao codificar o JSON: %w", err)
+		return fmt.Errorf("falha ao codificar o JSON: %v", err)
 	}
 
 	return nil

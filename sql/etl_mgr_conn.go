@@ -14,12 +14,12 @@ import (
 func connectDB(config Config) (*sql.DB, error) {
 	db, err := sql.Open(config.DestinationType, config.DestinationConnectionString)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao conectar ao banco de dados: %w", err)
+		return nil, fmt.Errorf("falha ao conectar ao banco de dados: %v", err)
 	}
 
 	// Verifica a conexão
 	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("falha ao verificar a conexão com o banco de dados: %w", err)
+		return nil, fmt.Errorf("falha ao verificar a conexão com o banco de dados: %v", err)
 	}
 
 	return db, nil
@@ -45,5 +45,5 @@ func reconnectDB(config Config) (*sql.DB, error) {
 		time.Sleep(retryInterval)
 	}
 
-	return nil, fmt.Errorf("falha ao reconectar ao banco de dados após %d tentativas: %w", maxRetries, err)
+	return nil, fmt.Errorf("falha ao reconectar ao banco de dados após %d tentativas: %v", maxRetries, err)
 }

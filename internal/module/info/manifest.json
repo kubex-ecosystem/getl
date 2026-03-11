@@ -10,6 +10,7 @@
   "repository": "https://github.com/kubex-ecosystem/getl",
   "homepage": "https://github.com/kubex-ecosystem/getl",
   "description": "Kubex GETL: A ETL tool for extracting, transforming, and loading data from various sources into your data warehouse.",
+  "go_version": "1.26.1",
   "main": "cmd/main.go",
   "bin": "getl",
   "author": "Rafael Mori <faelmori@gmail.com>",

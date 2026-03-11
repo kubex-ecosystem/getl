@@ -19,7 +19,7 @@ func CreateInternalSchema(db *sql.DB) error {
 	)`
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
-		return fmt.Errorf("falha ao criar esquema interno: %w", err)
+		return fmt.Errorf("falha ao criar esquema interno: %v", err)
 	}
 	return nil
 }
@@ -41,7 +41,7 @@ func CheckAndUpdateHashes(db *sql.DB, tableName string) (bool, error) {
 	var existingHash string
 	err := db.QueryRow("SELECT hash FROM etl_meta_info WHERE table_name = ?", tableName).Scan(&existingHash)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("falha ao obter hash existente: %w", err)
+		return false, fmt.Errorf("falha ao obter hash existente: %v", err)
 	}
 
 	if string(newHash) == existingHash {
@@ -54,7 +54,7 @@ func CheckAndUpdateHashes(db *sql.DB, tableName string) (bool, error) {
 		_, err = db.Exec("UPDATE etl_meta_info SET hash = ? WHERE table_name = ?", newHash, tableName)
 	}
 	if err != nil {
-		return false, fmt.Errorf("falha ao atualizar hash: %w", err)
+		return false, fmt.Errorf("falha ao atualizar hash: %v", err)
 	}
 
 	return true, nil // Dados alterados
@@ -69,7 +69,7 @@ func createInternalSchema(db *sql.DB) error {
 	)`
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
-		return fmt.Errorf("falha ao criar esquema interno: %w", err)
+		return fmt.Errorf("falha ao criar esquema interno: %v", err)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, erro
 	var existingHash string
 	err := db.QueryRow("SELECT hash FROM etl_meta_info WHERE table_name = ?", tableName).Scan(&existingHash)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("falha ao obter hash existente: %w", err)
+		return false, fmt.Errorf("falha ao obter hash existente: %v", err)
 	}
 
 	if string(newHash) == existingHash {
@@ -102,7 +102,7 @@ func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, erro
 		_, err = db.Exec("UPDATE etl_meta_info SET hash = ? WHERE table_name = ?", newHash, tableName)
 	}
 	if err != nil {
-		return false, fmt.Errorf("falha ao atualizar hash: %w", err)
+		return false, fmt.Errorf("falha ao atualizar hash: %v", err)
 	}
 
 	return true, nil // Dados alterados

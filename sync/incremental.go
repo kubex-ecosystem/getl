@@ -225,7 +225,7 @@ func (ism *IncrementalSyncManager) loadState() error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(ism.config.IncrementalSync.StateFile)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create state directory: %w", err)
+		return fmt.Errorf("failed to create state directory: %v", err)
 	}
 
 	// Check if state file exists
@@ -237,11 +237,11 @@ func (ism *IncrementalSyncManager) loadState() error {
 	// Read and parse state file
 	data, err := os.ReadFile(ism.config.IncrementalSync.StateFile)
 	if err != nil {
-		return fmt.Errorf("failed to read state file: %w", err)
+		return fmt.Errorf("failed to read state file: %v", err)
 	}
 
 	if err := json.Unmarshal(data, &ism.state); err != nil {
-		return fmt.Errorf("failed to parse state file: %w", err)
+		return fmt.Errorf("failed to parse state file: %v", err)
 	}
 
 	gl.Log("info", fmt.Sprintf("Loaded sync state from: %s", ism.config.IncrementalSync.StateFile))
@@ -259,18 +259,18 @@ func (ism *IncrementalSyncManager) saveState() error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(ism.config.IncrementalSync.StateFile)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return fmt.Errorf("failed to create state directory: %w", err)
+		return fmt.Errorf("failed to create state directory: %v", err)
 	}
 
 	// Marshal state to JSON
 	data, err := json.MarshalIndent(ism.state, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to marshal state: %w", err)
+		return fmt.Errorf("failed to marshal state: %v", err)
 	}
 
 	// Write to file
 	if err := os.WriteFile(ism.config.IncrementalSync.StateFile, data, 0644); err != nil {
-		return fmt.Errorf("failed to write state file: %w", err)
+		return fmt.Errorf("failed to write state file: %v", err)
 	}
 
 	gl.Log("info", fmt.Sprintf("Saved sync state to: %s", ism.config.IncrementalSync.StateFile))

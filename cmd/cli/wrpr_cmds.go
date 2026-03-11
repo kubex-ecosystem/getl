@@ -8,9 +8,9 @@ import (
 	"os"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
+	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	. "github.com/kubex-ecosystem/getl/sql"
 	. "github.com/kubex-ecosystem/getl/utils"
-	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
 	"github.com/segmentio/kafka-go"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,7 @@ func ExtractCmd() *cobra.Command {
 			// Carregar a configuração da fonte
 			sourceConfig, err := LoadConfigFile(fileConfigPath)
 			if err != nil {
-				return fmt.Errorf("falha ao carregar configuração da fonte: %w", err)
+				return fmt.Errorf("falha ao carregar configuração da fonte: %v", err)
 			}
 
 			var data []Data
@@ -62,7 +62,7 @@ func ExtractCmd() *cobra.Command {
 			// Extrai os dados com os tipos de coluna para contingência caso o tipo de coluna não seja informado
 			data, _, fieldsErr = ExtractDataWithTypes(nil, sourceConfig)
 			if fieldsErr != nil {
-				return fmt.Errorf("falha ao extrair dados do destino: %w", fieldsErr)
+				return fmt.Errorf("falha ao extrair dados do destino: %v", fieldsErr)
 			}
 
 			if sourceConfig.OutputPath != "" && fileOutputPath == "" {
@@ -72,7 +72,7 @@ func ExtractCmd() *cobra.Command {
 			if fileOutputPath != "" {
 				// Salvar os dados extraídos em um arquivo
 				if saveDataErr := SaveData(fileOutputPath, data, fileOutputFormat); saveDataErr != nil {
-					return fmt.Errorf("falha ao salvar os dados extraídos: %w", saveDataErr)
+					return fmt.Errorf("falha ao salvar os dados extraídos: %v", saveDataErr)
 				}
 				gl.Log("info", "Extração concluída com sucesso")
 			} else {
@@ -105,23 +105,23 @@ func LoadCmd() *cobra.Command {
 			// Carregar a configuração do destino
 			destinationConfig, err := LoadConfigFile(fileConfigPath)
 			if err != nil {
-				return fmt.Errorf("falha ao carregar configuração do destino: %w", err)
+				return fmt.Errorf("falha ao carregar configuração do destino: %v", err)
 			}
 
 			// Ler os dados transformados do arquivo JSON
 			fileData, fileDataErr := os.ReadFile("extracted_data.json")
 			if fileDataErr != nil {
-				return fmt.Errorf("falha ao ler o arquivo de dados extraídos: %w", fileDataErr)
+				return fmt.Errorf("falha ao ler o arquivo de dados extraídos: %v", fileDataErr)
 			}
 
 			var data []Data
 			if unmarshalErr := json.Unmarshal(fileData, &data); unmarshalErr != nil {
-				return fmt.Errorf("falha ao processar dados JSON: %w", unmarshalErr)
+				return fmt.Errorf("falha ao processar dados JSON: %v", unmarshalErr)
 			}
 
 			// Carregar os dados no banco de destino
 			if loadDataErr := LoadData(nil, destinationConfig); loadDataErr != nil {
-				return fmt.Errorf("falha ao carregar os dados no destino: %w", loadDataErr)
+				return fmt.Errorf("falha ao carregar os dados no destino: %v", loadDataErr)
 			}
 
 			gl.Log("info", "Carregamento concluído com sucesso")
@@ -188,7 +188,7 @@ func ProduceCmd() *cobra.Command {
 				Value: []byte(message),
 			})
 			if err != nil {
-				return fmt.Errorf("falha ao produzir mensagem: %w", err)
+				return fmt.Errorf("falha ao produzir mensagem: %v", err)
 			}
 
 			gl.Log("info", "Mensagem produzida com sucesso")
@@ -224,12 +224,12 @@ func ConsumeCmd() *cobra.Command {
 			for {
 				msg, err := reader.ReadMessage(context.Background())
 				if err != nil {
-					return fmt.Errorf("falha ao consumir mensagem: %w", err)
+					return fmt.Errorf("falha ao consumir mensagem: %v", err)
 				}
 
 				var data map[string]interface{}
 				if err := json.Unmarshal(msg.Value, &data); err != nil {
-					return fmt.Errorf("falha ao deserializar mensagem: %w", err)
+					return fmt.Errorf("falha ao deserializar mensagem: %v", err)
 				}
 
 				gl.Log("info", fmt.Sprintf("Mensagem consumida: %v", data))

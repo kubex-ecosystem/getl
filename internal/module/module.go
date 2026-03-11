@@ -93,7 +93,7 @@ func (m *GETl) Command() *cobra.Command {
 			[]string{
 				"This is a efficient sync manager for almost any database, any environment and any data source. \nYou can vizualize before, after, when you want and how you want.\nYou will extract, transform and load data from almost any source to almost any destination.\nSweet yourself with many flavors... Enjoy!",
 				"Sync manager for almost any database, any environment and any data source.",
-			}, m.hideBannerV,
+			}, !m.hideBannerV,
 		),
 	}
 	cmd.AddCommand(clii.SyncCmd())
