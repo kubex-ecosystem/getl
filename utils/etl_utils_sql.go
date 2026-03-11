@@ -161,6 +161,14 @@ func LoadConfigFile(fileConfigPath string) (Config, error) {
 		return Config{}, fmt.Errorf("falha ao processar JSON de configuração: %v", unmarshalErr)
 	}
 
+	config.SourceConnectionString = os.ExpandEnv(config.SourceConnectionString)
+	config.DestinationConnectionString = os.ExpandEnv(config.DestinationConnectionString)
+	config.OutputPath = os.ExpandEnv(config.OutputPath)
+	config.SourceTable = os.ExpandEnv(config.SourceTable)
+	config.DestinationTable = os.ExpandEnv(config.DestinationTable)
+	config.SQLQuery = os.ExpandEnv(config.SQLQuery)
+	config.IncrementalSync.StateFile = os.ExpandEnv(config.IncrementalSync.StateFile)
+
 	// Verificação de campos obrigatórios
 	requiredFields := []string{"sourceType", "sourceConnectionString", "destinationType", "destinationConnectionString"}
 	for _, field := range requiredFields {
