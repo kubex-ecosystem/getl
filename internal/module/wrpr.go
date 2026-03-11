@@ -6,7 +6,7 @@ import (
 )
 
 func RegX() *GETl {
-	var hideBannerV = os.Getenv("GOBE_HIDE_BANNER")
+	var hideBannerV = os.Getenv("GETL_HIDE_BANNER")
 	if hideBannerV == "" {
 		hideBannerV = "true"
 	}
