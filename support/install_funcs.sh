@@ -2,32 +2,32 @@
 # lib/install_funcs.sh – Functions for installing binaries and managing paths
 
 install_upx() {
-    if ! command -v upx &> /dev/null; then
-        if ! sudo -v &> /dev/null; then
+    if ! command -v upx &>/dev/null; then
+        if ! sudo -v &>/dev/null; then
             log error "You do not have permission to install UPX."
             log warn "If you want binary packing, please install UPX manually."
             log warn "See: https://upx.github.io/"
             return 1
         fi
         if [[ "$(uname)" == "Darwin" ]]; then
-            brew install upx >/dev/null
-        elif command -v apt-get &> /dev/null; then
-            sudo apt-get install -y upx >/dev/null
-        elif command -v yum &> /dev/null; then
-            sudo yum install -y upx >/dev/null
-        elif command -v dnf &> /dev/null; then
-            sudo dnf install -y upx >/dev/null
-        elif command -v pacman &> /dev/null; then
-            sudo pacman -S --noconfirm upx >/dev/null
-        elif command -v zypper &> /dev/null; then
-            sudo zypper install -y upx >/dev/null
-        elif command -v apk &> /dev/null; then
-            sudo apk add upx >/dev/null
-        elif command -v port &> /dev/null; then
+            brew install upx-ucl >/dev/null
+        elif command -v apt-get &>/dev/null; then
+            sudo apt-get install -y upx-ucl >/dev/null
+        elif command -v yum &>/dev/null; then
+            sudo yum install -y upx-ucl >/dev/null
+        elif command -v dnf &>/dev/null; then
+            sudo dnf install -y upx-ucl >/dev/null
+        elif command -v pacman &>/dev/null; then
+            sudo pacman -S --noconfirm upx-ucl >/dev/null
+        elif command -v zypper &>/dev/null; then
+            sudo zypper install -y upx-ucl >/dev/null
+        elif command -v apk &>/dev/null; then
+            sudo apk add upx-ucl >/dev/null
+        elif command -v port &>/dev/null; then
             sudo port install upx >/dev/null
-        elif command -v snap &> /dev/null; then
+        elif command -v snap &>/dev/null; then
             sudo snap install upx >/dev/null
-        elif command -v flatpak &> /dev/null; then
+        elif command -v flatpak &>/dev/null; then
             sudo flatpak install flathub org.uptane.upx -y >/dev/null
         else
             log warn "If you want binary packing, please install UPX manually."
@@ -44,16 +44,16 @@ detect_shell_rc() {
     user_shell=$(basename "$SHELL")
 
     case "$user_shell" in
-        bash) shell_rc_file="${HOME:-~}/.bashrc" ;;
-        zsh) shell_rc_file="${HOME:-~}/.zshrc" ;;
-        sh) shell_rc_file="${HOME:-~}/.profile" ;;
-        fish) shell_rc_file="${HOME:-~}/.config/fish/config.fish" ;;
-        *)
-            log warn "Unsupported shell: $user_shell"
-            log warn "Please add the path manually to your shell configuration file."
-            log warn "Supported shells: bash, zsh, sh, fish"
-            return 1
-            ;;
+    bash) shell_rc_file="${HOME:-~}/.bashrc" ;;
+    zsh) shell_rc_file="${HOME:-~}/.zshrc" ;;
+    sh) shell_rc_file="${HOME:-~}/.profile" ;;
+    fish) shell_rc_file="${HOME:-~}/.config/fish/config.fish" ;;
+    *)
+        log warn "Unsupported shell: $user_shell"
+        log warn "Please add the path manually to your shell configuration file."
+        log warn "Supported shells: bash, zsh, sh, fish"
+        return 1
+        ;;
     esac
 
     if [ ! -f "$shell_rc_file" ]; then
@@ -131,10 +131,10 @@ install_binary() {
     fi
 
     if [[ -n "$shell_rc_file" ]]; then
-      # shellcheck source=/dev/null
-      . "${shell_rc_file:-$(detect_shell_rc)}" || {
-          log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file}' manually."
-      }
+        # shellcheck source=/dev/null
+        . "${shell_rc_file:-$(detect_shell_rc)}" || {
+            log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file}' manually."
+        }
     fi
 }
 uninstall_binary() {
@@ -154,10 +154,10 @@ uninstall_binary() {
     shell_rc_file="$(detect_shell_rc)"
 
     if [[ -n "$shell_rc_file" ]]; then
-      # shellcheck source=/dev/null
-      . "${shell_rc_file:-$(detect_shell_rc)}" || {
-          log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file}' manually."
-      }
+        # shellcheck source=/dev/null
+        . "${shell_rc_file:-$(detect_shell_rc)}" || {
+            log warn "Failed to reload shell configuration. Please run 'source ${shell_rc_file}' manually."
+        }
     fi
 
     return 0
@@ -178,7 +178,7 @@ download_binary() {
     fi
     local version
     if [[ -z "${_VERSION}" ]]; then
-        version="${_REPOSITORY}/releases/latest"  # Use latest release if version is not specified
+        version="${_REPOSITORY}/releases/latest" # Use latest release if version is not specified
     else
         version="${_REPOSITORY}/releases/tag/${_VERSION}"
     fi

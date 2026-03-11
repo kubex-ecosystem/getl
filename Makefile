@@ -77,16 +77,6 @@ build-dev:
 	@bash $(INSTALL_SCRIPT) build-dev $(ARGS)
 	$(shell exit 0)
 
-# Install the binary and configure the environment.
-install:
-	@bash $(INSTALL_SCRIPT) install $(ARGS)
-	$(shell exit 0)
-
-# Uninstall the binary and clean up.
-uninstall:
-	@bash $(INSTALL_SCRIPT) uninstall $(ARGS)
-	$(shell exit 0)
-
 # Clean up build artifacts.
 clean:
 	@bash $(INSTALL_SCRIPT) clean $(ARGS)
@@ -95,10 +85,6 @@ clean:
 # Run tests.
 test:
 	@bash $(INSTALL_SCRIPT) test $(ARGS)
-	$(shell exit 0)
-
-optimize-images:
-	@bash $(INSTALL_SCRIPT) optimize-images $(ARGS)
 	$(shell exit 0)
 
 # Platform-specific targets (prevent wildcard capture)

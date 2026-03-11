@@ -126,10 +126,10 @@ compute_build_matrix() {
 
   # Normalize architecture
   case "${_arch_arg}" in
-    x86_64|amd64) _arch_arg="amd64" ;;
-    armv8|aarch64|arm64) _arch_arg="arm64" ;;
-    armv6l|armv7l) _arch_arg="armv6l" ;;
-    i386|I386) _arch_arg="386" ;;
+  x86_64 | amd64) _arch_arg="amd64" ;;
+  armv8 | aarch64 | arm64) _arch_arg="arm64" ;;
+  armv6l | armv7l) _arch_arg="armv6l" ;;
+  i386 | I386) _arch_arg="386" ;;
   esac
 
   # Declare associative array for platform-architecture mapping
@@ -137,38 +137,38 @@ compute_build_matrix() {
   declare -a PLATFORMS=()
 
   case "${_platform_arg}" in
-    all|ALL)
-      PLATFORMS=("linux" "darwin" "windows")
-      GOPLT_MAP[linux]="amd64 arm64 armv6l 386"
-      GOPLT_MAP[darwin]="amd64 arm64"
-      GOPLT_MAP[windows]="amd64 386"
-      ;;
-    linux|LINUX)
-      PLATFORMS=("linux")
-      case "${_arch_arg}" in
-        all|ALL) GOPLT_MAP[linux]="amd64 arm64 armv6l 386" ;;
-        *) GOPLT_MAP[linux]="${_arch_arg}" ;;
-      esac
-      ;;
-    darwin|DARWIN|macOS|MACOS)
-      PLATFORMS=("darwin")
-      case "${_arch_arg}" in
-        all|ALL) GOPLT_MAP[darwin]="amd64 arm64" ;;
-        *) GOPLT_MAP[darwin]="${_arch_arg}" ;;
-      esac
-      ;;
-    windows|WINDOWS)
-      PLATFORMS=("windows")
-      case "${_arch_arg}" in
-        all|ALL) GOPLT_MAP[windows]="amd64 386" ;;
-        *) GOPLT_MAP[windows]="${_arch_arg}" ;;
-      esac
-      ;;
-    *)
-      # Single platform specified
-      PLATFORMS=("${_platform_arg}")
-      GOPLT_MAP[${_platform_arg}]="${_arch_arg}"
-      ;;
+  all | ALL)
+    PLATFORMS=("linux" "darwin" "windows")
+    GOPLT_MAP[linux]="amd64 arm64 armv6l 386"
+    GOPLT_MAP[darwin]="amd64 arm64"
+    GOPLT_MAP[windows]="amd64 386"
+    ;;
+  linux | LINUX)
+    PLATFORMS=("linux")
+    case "${_arch_arg}" in
+    all | ALL) GOPLT_MAP[linux]="amd64 arm64 armv6l 386" ;;
+    *) GOPLT_MAP[linux]="${_arch_arg}" ;;
+    esac
+    ;;
+  darwin | DARWIN | macOS | MACOS)
+    PLATFORMS=("darwin")
+    case "${_arch_arg}" in
+    all | ALL) GOPLT_MAP[darwin]="amd64 arm64" ;;
+    *) GOPLT_MAP[darwin]="${_arch_arg}" ;;
+    esac
+    ;;
+  windows | WINDOWS)
+    PLATFORMS=("windows")
+    case "${_arch_arg}" in
+    all | ALL) GOPLT_MAP[windows]="amd64 386" ;;
+    *) GOPLT_MAP[windows]="${_arch_arg}" ;;
+    esac
+    ;;
+  *)
+    # Single platform specified
+    PLATFORMS=("${_platform_arg}")
+    GOPLT_MAP[${_platform_arg}]="${_arch_arg}"
+    ;;
   esac
 
   # Export for use in other functions
@@ -314,7 +314,7 @@ compile_binary() {
   local _build_env=(
     "GOOS=${_platform_pos}"
     "GOARCH=${_arch_pos}"
-    "CGO_ENABLED=0"
+    "CGO_ENABLED=1"
   )
 
   # Execute build
@@ -343,10 +343,10 @@ build_for_arch() {
 
   # Normalize architecture
   case "${_arch_pos}" in
-    x86_64|X86_64) _arch_pos="amd64" ;;
-    armv8|aarch64|AARCH64) _arch_pos="arm64" ;;
-    armv6l|ARMV6L) _arch_pos="armv6l" ;;
-    i386|I386) _arch_pos="386" ;;
+  x86_64 | X86_64) _arch_pos="amd64" ;;
+  armv8 | aarch64 | AARCH64) _arch_pos="arm64" ;;
+  armv6l | ARMV6L) _arch_pos="armv6l" ;;
+  i386 | I386) _arch_pos="386" ;;
   esac
 
   # Validate platform/arch combination
@@ -378,7 +378,7 @@ build_for_arch() {
         create_archive "${_platform_pos}" "${_arch_pos}" "${_output_name}"
       fi
     fi
-  done <<< "${_main_dirs}"
+  done <<<"${_main_dirs}"
 
   return 0
 }
@@ -389,27 +389,27 @@ is_valid_platform_arch() {
   local _arch="${2:-}"
 
   case "${_platform}" in
-    linux)
-      case "${_arch}" in
-        amd64|arm64|armv6l|386) return 0 ;;
-        *) return 1 ;;
-      esac
-      ;;
-    darwin)
-      case "${_arch}" in
-        amd64|arm64) return 0 ;;
-        *) return 1 ;;
-      esac
-      ;;
-    windows)
-      case "${_arch}" in
-        amd64|386) return 0 ;;
-        *) return 1 ;;
-      esac
-      ;;
-    *)
-      return 1
-      ;;
+  linux)
+    case "${_arch}" in
+    amd64 | arm64 | armv6l | 386) return 0 ;;
+    *) return 1 ;;
+    esac
+    ;;
+  darwin)
+    case "${_arch}" in
+    amd64 | arm64) return 0 ;;
+    *) return 1 ;;
+    esac
+    ;;
+  windows)
+    case "${_arch}" in
+    amd64 | 386) return 0 ;;
+    *) return 1 ;;
+    esac
+    ;;
+  *)
+    return 1
+    ;;
   esac
 }
 
@@ -522,10 +522,10 @@ build_binary() {
 
     # Normalize arch for single builds
     case "${_arch_args}" in
-      x86_64|X86_64) _arch_args="amd64" ;;
-      armv8|aarch64|AARCH64) _arch_args="arm64" ;;
-      armv6l|ARMV6L) _arch_args="armv6l" ;;
-      i386|I386) _arch_args="386" ;;
+    x86_64 | X86_64) _arch_args="amd64" ;;
+    armv8 | aarch64 | AARCH64) _arch_args="arm64" ;;
+    armv6l | ARMV6L) _arch_args="armv6l" ;;
+    i386 | I386) _arch_args="386" ;;
     esac
 
     # Discover main packages
@@ -575,9 +575,9 @@ check_overwrite_binary() {
         log notice "Press 'y' to overwrite or any other key to skip." true
         log question "(y) to overwrite, any other key to skip (default: n, 10 seconds to respond)" true
         read -t 10 -p "" -n 1 -r REPLY || REPLY="n"
-        echo '' # Move to a new line after the prompt
+        echo ''             # Move to a new line after the prompt
         REPLY="${REPLY,,}"  # Convert to lowercase
-        REPLY="${REPLY:-n}"  # Default to 'n' if no input
+        REPLY="${REPLY:-n}" # Default to 'n' if no input
       else
         log notice "Binary already exists: ${_output_name:-}" true
         log notice "Skipping confirmation in non-interactive mode." true
@@ -654,21 +654,21 @@ _get_os_arr_from_args() {
   local _platform="${1:-$(uname -s | tr '[:upper:]' '[:lower:]')}"
 
   case "${_platform}" in
-    all|ALL|a|A|-a|-A)
-      echo "windows darwin linux"
-      ;;
-    win|WIN|windows|WINDOWS|w|W|-w|-W)
-      echo "windows"
-      ;;
-    linux|LINUX|l|L|-l|-L)
-      echo "linux"
-      ;;
-    darwin|DARWIN|macOS|MACOS|m|M|-m|-M)
-      echo "darwin"
-      ;;
-    *)
-      echo "${_platform}"
-      ;;
+  all | ALL | a | A | -a | -A)
+    echo "windows darwin linux"
+    ;;
+  win | WIN | windows | WINDOWS | w | W | -w | -W)
+    echo "windows"
+    ;;
+  linux | LINUX | l | L | -l | -L)
+    echo "linux"
+    ;;
+  darwin | DARWIN | macOS | MACOS | m | M | -m | -M)
+    echo "darwin"
+    ;;
+  *)
+    echo "${_platform}"
+    ;;
   esac
 }
 
@@ -678,58 +678,58 @@ _get_arch_arr_from_args() {
 
   # Normalize architecture names
   case "${_arch}" in
-    x86_64|X86_64) _arch="amd64" ;;
-    armv8|aarch64|AARCH64) _arch="arm64" ;;
-    armv6l|ARMV6L) _arch="armv6l" ;;
-    i386|I386) _arch="386" ;;
+  x86_64 | X86_64) _arch="amd64" ;;
+  armv8 | aarch64 | AARCH64) _arch="arm64" ;;
+  armv6l | ARMV6L) _arch="armv6l" ;;
+  i386 | I386) _arch="386" ;;
   esac
 
   case "${_platform}" in
-    darwin|DARWIN|macOS|MACOS)
-      case "${_arch}" in
-        all|ALL|a|A|-a|-A)
-          echo "amd64 arm64"
-          ;;
-        amd64|arm64)
-          echo "${_arch}"
-          ;;
-        *)
-          log error "Invalid architecture '${_arch}' for darwin. Valid: amd64, arm64"
-          return 1
-          ;;
-      esac
+  darwin | DARWIN | macOS | MACOS)
+    case "${_arch}" in
+    all | ALL | a | A | -a | -A)
+      echo "amd64 arm64"
       ;;
-    linux|LINUX)
-      case "${_arch}" in
-        all|ALL|a|A|-a|-A)
-          echo "amd64 arm64 armv6l 386"
-          ;;
-        amd64|arm64|armv6l|386)
-          echo "${_arch}"
-          ;;
-        *)
-          log error "Invalid architecture '${_arch}' for linux. Valid: amd64, arm64, armv6l, 386"
-          return 1
-          ;;
-      esac
-      ;;
-    windows|WINDOWS)
-      case "${_arch}" in
-        all|ALL|a|A|-a|-A)
-          echo "amd64 386"
-          ;;
-        amd64|386)
-          echo "${_arch}"
-          ;;
-        *)
-          log error "Invalid architecture '${_arch}' for windows. Valid: amd64, 386"
-          return 1
-          ;;
-      esac
-      ;;
-    *)
+    amd64 | arm64)
       echo "${_arch}"
       ;;
+    *)
+      log error "Invalid architecture '${_arch}' for darwin. Valid: amd64, arm64"
+      return 1
+      ;;
+    esac
+    ;;
+  linux | LINUX)
+    case "${_arch}" in
+    all | ALL | a | A | -a | -A)
+      echo "amd64 arm64 armv6l 386"
+      ;;
+    amd64 | arm64 | armv6l | 386)
+      echo "${_arch}"
+      ;;
+    *)
+      log error "Invalid architecture '${_arch}' for linux. Valid: amd64, arm64, armv6l, 386"
+      return 1
+      ;;
+    esac
+    ;;
+  windows | WINDOWS)
+    case "${_arch}" in
+    all | ALL | a | A | -a | -A)
+      echo "amd64 386"
+      ;;
+    amd64 | 386)
+      echo "${_arch}"
+      ;;
+    *)
+      log error "Invalid architecture '${_arch}' for windows. Valid: amd64, 386"
+      return 1
+      ;;
+    esac
+    ;;
+  *)
+    echo "${_arch}"
+    ;;
   esac
 }
 
@@ -737,24 +737,24 @@ _get_os_from_args() {
   local _platform="${1:-"$(uname -s | tr '[:upper:]' '[:lower:]')"}"
 
   case "${_platform:-"$(uname -s | tr '[:upper:]' '[:lower:]')"}" in
-    all|ALL|a|A|-a|-A)
-      echo "all"
+  all | ALL | a | A | -a | -A)
+    echo "all"
     ;;
 
-    win|WIN|windows|WINDOWS|w|W|-w|-W)
-      echo "windows"
+  win | WIN | windows | WINDOWS | w | W | -w | -W)
+    echo "windows"
     ;;
 
-    linux|LINUX|l|L|-l|-L)
-      echo "linux"
+  linux | LINUX | l | L | -l | -L)
+    echo "linux"
     ;;
 
-    darwin|DARWIN|macOS|MACOS|m|M|-m|-M)
-      echo "darwin"
+  darwin | DARWIN | macOS | MACOS | m | M | -m | -M)
+    echo "darwin"
     ;;
 
-    *)
-      log fatal "Invalid platform: '${_platform:-}'. Valid options: windows, linux, darwin, all."
+  *)
+    log fatal "Invalid platform: '${_platform:-}'. Valid options: windows, linux, darwin, all."
     ;;
 
   esac
@@ -766,13 +766,13 @@ _get_arch_from_args() {
 
   # Normalize common arch names
   case "${_arch}" in
-    x86_64|X86_64) echo "amd64" ;;
-    armv8|aarch64|AARCH64) echo "arm64" ;;
-    i386|I386) echo "386" ;;
-    ARMV6L|aa) echo "armv6l" ;;
-    all|ALL|a|A|-a|-A) echo "all" ;;
-    amd64|arm64|386|armv6l) echo "${_arch}" ;;
-    *) echo "${_arch}" ;;
+  x86_64 | X86_64) echo "amd64" ;;
+  armv8 | aarch64 | AARCH64) echo "arm64" ;;
+  i386 | I386) echo "386" ;;
+  ARMV6L | aa) echo "armv6l" ;;
+  all | ALL | a | A | -a | -A) echo "all" ;;
+  amd64 | arm64 | 386 | armv6l) echo "${_arch}" ;;
+  *) echo "${_arch}" ;;
   esac
 }
 
@@ -797,15 +797,15 @@ measure_build_performance() {
   local _end_time="${2:-$(date +%s%3N 2>/dev/null || echo $(($(date +%s) * 1000)))}"
 
   if [[ -n "${_start_time}" ]]; then
-    local _duration=$(( _end_time - _start_time ))
+    local _duration=$((_end_time - _start_time))
 
-    if (( _duration < 1000 )); then
+    if ((_duration < 1000)); then
       log notice "Build completed in ${_duration}ms"
-    elif (( _duration < 60000 )); then
+    elif ((_duration < 60000)); then
       log notice "Build completed in $((_duration / 1000)).$(((_duration % 1000) / 100))s"
     else
-      local minutes=$(( _duration / 60000 ))
-      local seconds=$(( (_duration / 1000) % 60 ))
+      local minutes=$((_duration / 60000))
+      local seconds=$(((_duration / 1000) % 60))
       log notice "Build completed in ${minutes}m ${seconds}s"
     fi
   fi
@@ -832,30 +832,30 @@ install_upx() {
   log info "UPX not found, attempting to install..."
 
   case "$(uname -s)" in
-    Linux*)
-      if command -v apt-get >/dev/null 2>&1; then
-        sudo apt-get update && sudo apt-get install -y upx-ucl
-      elif command -v yum >/dev/null 2>&1; then
-        sudo yum install -y upx
-      elif command -v pacman >/dev/null 2>&1; then
-        sudo pacman -S --noconfirm upx
-      else
-        log warn "Could not install UPX automatically on this Linux distribution"
-        return 1
-      fi
-      ;;
-    Darwin*)
-      if command -v brew >/dev/null 2>&1; then
-        brew install upx
-      else
-        log warn "Homebrew not found, cannot install UPX automatically"
-        return 1
-      fi
-      ;;
-    *)
-      log warn "Automatic UPX installation not supported on this platform"
+  Linux*)
+    if command -v apt-get >/dev/null 2>&1; then
+      sudo apt-get update && sudo apt-get install -y upx-ucl
+    elif command -v yum >/dev/null 2>&1; then
+      sudo yum install -y upx
+    elif command -v pacman >/dev/null 2>&1; then
+      sudo pacman -S --noconfirm upx
+    else
+      log warn "Could not install UPX automatically on this Linux distribution"
       return 1
-      ;;
+    fi
+    ;;
+  Darwin*)
+    if command -v brew >/dev/null 2>&1; then
+      brew install upx
+    else
+      log warn "Homebrew not found, cannot install UPX automatically"
+      return 1
+    fi
+    ;;
+  *)
+    log warn "Automatic UPX installation not supported on this platform"
+    return 1
+    ;;
   esac
 
   if command -v upx >/dev/null 2>&1; then
