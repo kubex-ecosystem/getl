@@ -1,211 +1,164 @@
-# ![Getl Banner](./assets/getl_banner.png)
+# GETL
 
----
+English version: [../README.md](../README.md)
 
-***Getl: Um Gerenciador Eficiente de Sincronização e ETL para Integração de Dados***
+## Sumário
 
-Getl é uma ferramenta poderosa e flexível escrita em Go que facilita a extração, transformação e carga (ETL) de dados, além de sincronia contínua entre diversas fontes e destinos. Ele suporta múltiplos bancos de dados, formatos (CSV, JSON, XML, YAML, etc.) e até integra sistemas de mensageria, permitindo a criação de fluxos de dados dinâmicos e customizáveis.
+- [Visão Geral](#visão-geral)
+- [Escopo Atual do Produto](#escopo-atual-do-produto)
+- [Estado Operacional Atual](#estado-operacional-atual)
+- [Capacidades Principais](#capacidades-principais)
+- [Visão Geral da Arquitetura](#visão-geral-da-arquitetura)
+- [Estrutura do Repositório](#estrutura-do-repositório)
+- [Notas de Instalação](#notas-de-instalação)
+- [Comandos Principais](#comandos-principais)
+- [Modelo de Configuração](#modelo-de-configuração)
+- [Caso de Uso com PostgreSQL e Sync de Catálogo](#caso-de-uso-com-postgresql-e-sync-de-catálogo)
+- [Papel Atual no Ecossistema](#papel-atual-no-ecossistema)
+- [Limitações Atuais](#limitações-atuais)
+- [Screenshots](#screenshots)
 
----
+## Visão Geral
 
-## **Table of Contents**
+`GETL` é o utilitário de ETL e sincronização do ecossistema Kubex.
 
-1. [Sobre o Projeto](#sobre-o-projeto)
-2. [Funcionalidades](#funcionalidades)
-3. [Instalação](#instalação)
-4. [Uso](#uso)
-    - [CLI](#cli)
-    - [Exemplos de Configuração](#exemplos-de-configuração)
-5. [Configuração](#configuração)
-6. [Roadmap](#roadmap)
-7. [Contribuindo](#contribuindo)
-8. [Licença](#licença)
-9. [Contato](#contato)
+Ele foi desenhado para mover dados entre fontes e destinos heterogêneos por meio de pipelines configuráveis, mantendo praticidade suficiente para ser usado em fluxos reais de repositório para runtime.
 
----
+No estágio atual, o `GETL` já não é apenas uma ideia genérica de ETL. Ele já é usado materialmente como parte do caminho de ingestão do catálogo Sankhya que sustenta a geração BI guiada por metadados no `GNyx`.
 
-## **Sobre o Projeto**
+## Escopo Atual do Produto
 
-Getl é uma solução robusta para integração de dados, projetada para atender desde operações batch até processos de sincronização contínua. Com ele, você pode:
+Áreas práticas atuais incluem:
 
-- Conectar-se a diversas fontes (ex.: Oracle, PostgreSQL, MySQL, SQLite, MongoDB, etc.)
-- Aplicar transformações detalhadas entre campos
-- Sincronizar dados entre sistemas heterogêneos, inclusive com suporte a mensageria via Kafka e Redis
-- Exportar dados para múltiplos formatos
+- execução configurável de ETL e sync
+- fluxos de origem e destino orientados a SQL
+- caminhos de ingestão para banco e arquivos
+- materialização full-refresh ou em estilo batch
+- suporte utilitário para sistemas heterogêneos
+- código Go reutilizável mais superfícies orientadas a CLI
 
-Getl proporciona uma abordagem flexível e configurável para que qualquer usuário (de iniciantes a experts) possa gerenciar fluxos de dados com facilidade e eficiência.
+Ele também inclui uma superfície mais ampla de longo prazo envolvendo incremental sync, múltiplos backends e estratégias de sincronização mais ricas.
 
----
+## Estado Operacional Atual
 
-## **Funcionalidades**
+Verdades operacionais relevantes hoje:
 
-- **Extração de Dados**: Suporte para diversas fontes de dados.
-- **Transformação Personalizada**: Permite definir mapeamentos e operações entre campos.
-- **Carga e Sincronização**: Insere e atualiza dados de forma automatizada, com verificação de integridade.
-- **Suporte a Mensageria**: Integração com Kafka e Redis para fluxos em tempo real.
-- **Exportação de Dados**: Gera saídas em CSV, JSON, XML, YAML, PDF, entre outros formatos.
-- **Configuração Dinâmica**: Configure o Getl utilizando arquivos JSON ou YAML com comentários (JSONC).
-- **Operação Batch e Contínua**: Execute operações únicas ou sincronizações periódicas com intervalos configuráveis.
+- o `GETL` já está sendo usado para carregar CSVs de metadados Sankhya no PostgreSQL
+- o schema alvo real dessa frente é `sankhya_catalog`
+- arquivos de configuração agora podem expandir variáveis de ambiente, o que tornou configs versionadas realmente práticas
+- o repositório é valioso tanto como ferramenta quanto como dependência importável
 
----
+## Capacidades Principais
 
-## **Instalação**
+Capacidades concretas atuais incluem:
 
-### Requisitos
+- fluxos configuráveis de extração e carga
+- helpers de ingestão e carga orientados a SQL
+- materialização de tabelas de destino
+- execução batch a partir de inputs como CSV
+- suporte mais amplo a padrões heterogêneos de movimentação de dados
+- loading de config com expansão de env
 
-- **Go** (versão 1.19 ou superior)
-- Permissões para acessar as fontes e destinos de dados
+## Visão Geral da Arquitetura
 
-```shell
-# Clone o repositório
-git clone https://github.com/kubex-ecosystem/getl.git
-cd getl
+O `GETL` se organiza em torno de:
 
-# Construa o binário usando o Makefile
-make build
+- entrypoints de CLI
+- orquestração de config e sync
+- camadas utilitárias de SQL/dados
+- suporte a extração e transformação
+- tipos compartilhados orientados a ETL
 
-# Instale o binário (opcional)
-make install
+## Estrutura do Repositório
 
-# Adicione o binário ao PATH, se necessário:
-export PATH=$PATH:$(pwd)
+```text
+cmd/                    entrypoints da CLI
+sql/                    caminhos ETL orientados a SQL
+sync/                   lógica de sincronização
+utils/                  loading e helpers de apoio
+extr/                   código relacionado a extração
+etypes/                 tipos compartilhados orientados a ETL
 ```
 
----
+## Notas de Instalação
 
-## **Uso**
+Restrição importante de build:
 
-### CLI
+- como o `GETL` depende de `godror` para suporte a Oracle, alguns ambientes de build exigem `CGO=1`
 
-Exemplos de comandos para utilizar o Getl:
+Exemplo:
 
-```shell
-# Sincronização simples: extrai dados de uma fonte e os carrega para um destino
-getl sync -f examples/configFiles/exp_config_a.json
-
-# Extração de dados específicos via SQL
-getl extract --source "oracle_db" --query "SELECT * FROM produtos"
-
-# Transformação e carga de dados com configurações customizadas
-getl transform -f examples/configFiles/exp_config_b.json
+```bash
+CGO=1 go build ./...
 ```
 
-### Exemplos de Configuração
+Isso importa não só ao compilar o `GETL` diretamente, mas também quando outro projeto o importa transitivamente.
 
-#### **Exemplo 1: Sincronização Básica**
+## Comandos Principais
 
-```json
-{
-  "sourceType": "godror",
-  "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
-  "destinationType": "sqlite3",
-  "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
-  "destinationTable": "erp_products",
-  "destinationTablePrimaryKey": "CODPARC",
-  "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
-  "outputFormat": "csv",
-  "outputPath": "/home/user/Documents/erp_products.csv",
-  "needCheck": true,
-  "checkMethod": "SELECT * FROM erp_products WHERE CODPARC = ? AND NOMEPARC = ?",
-  "kafkaURL": "",
-  "kafkaTopic": "",
-  "kafkaGroupID": ""
-}
+Compilar:
+
+```bash
+go build ./...
 ```
 
-#### **Exemplo 2: Sincronização Contínua**
+Rodar testes:
 
-```json
-{
-  "sourceType": "godror",
-  "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
-  "destinationType": "sqlite3",
-  "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
-  "destinationTable": "erp_products",
-  "destinationTablePrimaryKey": "CODPARC",
-  "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
-  "syncInterval": "30 * * * * *",
-  "kafkaURL": "",
-  "kafkaTopic": "",
-  "kafkaGroupID": ""
-}
+```bash
+go test ./...
 ```
 
-#### **Exemplo 3: Transformações Detalhadas**
+A superfície exata de comandos operacionais pode variar por fluxo, mas o `GETL` já está sendo consumido hoje por orquestração de nível mais alto no `GNyx`.
 
-```json
-{
-  "sourceType": "sqlite3",
-  "sourceConnectionString": "/home/user/.kubex/web/gorm.db",
-  "sourceTable": "erp_products",
-  "sourceTablePrimaryKey": "CODPROD",
-  "sqlQuery": "",
-  "destinationType": "sqlServer",
-  "destinationConnectionString": "sqlserver://username:password@localhost:1433?database=my_db_test&encrypt=disable&trustservercertificate=true",
-  "destinationTable": "erp_products_test",
-  "destinationTablePrimaryKey": "id_v",
-  "kafkaURL": "",
-  "kafkaTopic": "",
-  "kafkaGroupID": "",
-  "transformations": [
-    {
-      "sourceField": "CODPROD",
-      "destinationField": "id_v",
-      "operation": "none",
-      "sPath": "erp_products",
-      "dPath": "erp_products_test"
-    },
-    {
-      "sourceField": "PRODDESCR",
-      "destinationField": "name_v",
-      "operation": "none",
-      "sPath": "erp_products",
-      "dPath": "erp_products_test"
-    }
-    // Outras transformações...
-  ]
-}
-```
+## Modelo de Configuração
 
----
+O `GETL` é orientado por configuração.
 
-## **Configuração**
+Melhoria prática recente:
 
-O Getl utiliza arquivos de configuração em JSON ou YAML para definir parâmetros de conexão, transformações e sincronização. Esses arquivos podem ser personalizados conforme as necessidades do usuário. Para mais detalhes, consulte a [documentação de configuração](https://github.com/kubex-ecosystem/getl/README.md#configuration-file).
+- a expansão de variáveis de ambiente no loading de configs agora funciona, o que significa que manifests versionados de sync não precisam mais hardcodar DSNs locais ou valores específicos de máquina
 
----
+Isso viabilizou manter configs reutilizáveis no versionamento e ainda assim executá-las em ambientes diferentes.
 
-## **Roadmap**
+## Caso de Uso com PostgreSQL e Sync de Catálogo
 
-🔜 **Recursos Futuros Planejados**:
+Agora existe um caso de uso real importante:
 
-- Novos conectores para fontes/destinos adicionais (ex.: MongoDB, Redis).
-- Mais operações de transformação customizadas.
-- Integração expandida com sistemas de mensageria.
-- Dashboard e métricas em tempo real para visualizar a sincronização e status dos jobs.
+- CSVs de metadados BI do Sankhya são carregados no PostgreSQL
+- schema de destino: `sankhya_catalog`
+- registry/governança ficam no `Domus`
+- o comando de orquestração atualmente vive no `GNyx`
 
----
+Na prática:
 
-## **Contribuindo**
+- o `GETL` cuida da ingestão/materialização
+- o `Domus` hospeda o runtime PostgreSQL ativo e o external metadata registry
+- o `GNyx` orquestra o fluxo de sync orientado ao domínio
 
-Contribuições são sempre bem-vindas!
-Sinta-se à vontade para abrir issues ou enviar pull requests.
-Confira o [Guia de Contribuição](CONTRIBUTING.md) para mais detalhes.
+Este é um bom exemplo de o `GETL` ser usado como ferramenta real do ecossistema, e não como experimento isolado.
 
----
+## Papel Atual no Ecossistema
 
-## **Licença**
+Hoje o `GETL` é especialmente relevante para:
 
-Este projeto é licenciado sob a [MIT License](LICENSE).
+- frentes de ingestão de metadados
+- carga de catálogos no PostgreSQL
+- cenários futuros mais amplos de ETL e sync entre projetos Kubex
 
----
+Seu papel cresceu materialmente quando a prova de conceito de BI guiada por metadados se tornou uma feature real no `GNyx`.
 
-## **Contato**
+## Limitações Atuais
 
-💌 **Desenvolvedor**: [Rafael Mori](mailto:faelmori@gmail.com)
-💼 [GitHub - Rafael Mori](https://github.com/faelmori)
+Limitações atuais incluem:
 
-Se você achar o projeto interessante ou quiser colaborar, entre em contato!
-💼 Estou aberto a novas oportunidades de trabalho e colaborações.
+- o uso real no ecossistema ainda está concentrado em alguns fluxos concretos, e não em toda capacidade teórica possível
+- a superfície total é mais ampla do que a slice hoje battle-tested
+- `godror` e os requisitos de CGO adicionam restrições práticas de build em alguns ambientes
 
----
+## Screenshots
+
+Sugestões de placeholders:
+
+- `[Screenshot Placeholder: saída do comando de sync]`
+- `[Screenshot Placeholder: tabelas alvo no PostgreSQL]`
+- `[Screenshot Placeholder: exemplo de config]`

@@ -1,286 +1,164 @@
-# ![Getl Banner](./assets/getl_banner.png)
+# GETL
 
----
-
-***Getl: An Efficient Data Synchronization and ETL Manager***
-
-Getl is a powerful and flexible tool written in Go that streamlines the extraction, transformation, and loading (ETL) of data. It also supports continuous synchronization between various sources and destinations. Whether you're working with databases, file-based formats, or real-time messaging systems, Getl offers a unified approach to build dynamic data pipelines with ease.
-
----
+Portuguese (Brazil) version: [docs/README.pt-BR.md](./docs/README.pt-BR.md)
 
 ## Table of Contents
 
-1. [About the Project](#about-the-project)
-2. [Features](#features)
-3. [Installation](#installation)
-4. [Usage](#usage)
-   - [CLI Examples](#cli-examples)
-   - [Configuration Examples](#configuration-examples)
-5. [Configuration](#configuration)
-6. [Roadmap](#roadmap)
-7. [Contributing](#contributing)
-8. [License](#license)
-9. [Contact](#contact)
+- [Overview](#overview)
+- [Current Product Scope](#current-product-scope)
+- [Current Operational State](#current-operational-state)
+- [Core Capabilities](#core-capabilities)
+- [Architecture Overview](#architecture-overview)
+- [Repository Layout](#repository-layout)
+- [Installation Notes](#installation-notes)
+- [Primary Commands](#primary-commands)
+- [Configuration Model](#configuration-model)
+- [PostgreSQL and Catalog Sync Use Case](#postgresql-and-catalog-sync-use-case)
+- [Current Role in the Ecosystem](#current-role-in-the-ecosystem)
+- [Current Limitations](#current-limitations)
+- [Screenshots](#screenshots)
 
----
+## Overview
 
-## About the Project
+`GETL` is the Kubex ETL and synchronization utility.
 
-Getl is designed to be a robust solution for data integration and synchronization across heterogeneous systems. It supports a variety of data sources and destinations – from traditional relational databases to modern messaging systems – and bridges them through dynamic ETL workflows and flexible configurations.
+It is designed to move data between heterogeneous sources and destinations through configurable pipelines, while remaining practical enough to be used in real repository-to-runtime workflows.
 
-**Why Getl?**
+At the current stage, `GETL` is not just a generic ETL idea. It is now materially used as part of the Sankhya catalog ingestion path that supports metadata-driven BI generation in `GNyx`.
 
-- **Ease of Use:** Configure and manage complex data flows with simple JSONC/YAML configuration files.
-- **Flexibility:** Supports multiple databases and file formats with customizable field mappings and transformation rules.
-- **Continuous Synchronization:** Schedule periodic syncs for near real-time updates.
-- **Extensibility:** Integrate messaging systems such as Kafka or Redis for real-time data pipelines.
+## Current Product Scope
 
----
+Current practical areas include:
 
-## Features
+- configurable ETL and sync execution
+- SQL-oriented source and destination flows
+- database and file-oriented ingestion paths
+- full-refresh or batch-style materialization
+- utility support for heterogeneous systems
+- reusable Go code plus CLI-oriented execution paths
 
-### 🚀 **NEW: Incremental Sync (Game Changer!)**
+It also includes a broader long-term surface around incremental sync, multiple backends, and richer synchronization strategies.
 
-- **Intelligent Change Detection:** Only processes new or modified data, not entire datasets
-- **Multiple Strategies:** Timestamp-based, Primary Key-based, and Hash-based sync
-- **10x-300x Performance Boost:** Massive speed improvements for large datasets
-- **State Management:** Automatic tracking of sync progress with recovery capabilities
-- **Zero Configuration:** Works out-of-the-box with smart defaults
+## Current Operational State
 
-### 🔄 **Core ETL Features**
+Operationally relevant truths today:
 
-- **Data Extraction:** Connect and extract data from various sources (Oracle, PostgreSQL, MySQL, SQLite, SQL Server) using customizable SQL queries
-- **Smart Type Detection:** Automatic data type inference and mapping between different database systems
-- **Custom Transformations:** Define mapping and transformation rules to convert data between formats and structures
-- **Data Loading and Synchronization:** Automatically create destination tables with proper types and constraints
-- **Multiple Output Formats:** Export data to CSV, JSON, XML, YAML, PDF, and more
-- **Dynamic Configuration:** Manage your ETL processes with configuration files that support comments (JSONC) for clarity
+- `GETL` is already being used to load Sankhya metadata CSVs into PostgreSQL
+- the current real target schema for that front is `sankhya_catalog`
+- config files can now expand environment variables, which made versioned sync configs practical
+- the current repository is valuable both as a tool and as an importable dependency
 
-### ⚡ **Advanced Features**
+## Core Capabilities
 
-- **Real-Time Integration:** Leverage messaging integrations for live data flow using Kafka, Redis, and others
-- **Robust Error Handling:** Intelligent fallbacks and comprehensive logging
-- **Production Ready:** Battle-tested type mapping and connection management
-- **CLI Perfection:** Intuitive command-line interface with helpful output
+Current concrete capabilities include:
 
----
+- configurable extraction and load flows
+- SQL-backed ingestion and load helpers
+- destination table materialization
+- batch load execution from CSV-oriented inputs
+- broader support for heterogeneous data movement patterns
+- config loading with env expansion
 
-## Installation
+## Architecture Overview
 
-### Requirements
+`GETL` is organized around:
 
-- **Go** (version 1.19 or above)
-- Appropriate permissions to access data sources and destinations
+- CLI entrypoints
+- configuration and sync orchestration
+- SQL/data utility layers
+- extraction and transformation support
+- shared ETL-oriented types
 
-```shell
-# Clone this repository
-git clone https://github.com/kubex-ecosystem/getl.git
+## Repository Layout
 
-# Navigate to the project directory
-cd getl
-
-# Build the binary using the Makefile
-make build
-
-# Install the binary (optional)
-make install
-
-# (Optional) Add the binary to your PATH
-export PATH=$PATH:$(pwd)
+```text
+cmd/                    CLI entrypoints
+sql/                    SQL-oriented ETL paths
+sync/                   synchronization logic
+utils/                  loading and supporting helpers
+extr/                   extraction-related code
+etypes/                 ETL-oriented shared types
 ```
 
----
+## Installation Notes
 
-## Usage
+Important build constraint:
 
-### CLI Examples
+- because `GETL` depends on `godror` for Oracle support, some build environments require `CGO=1`
 
-#### 🚀 **Incremental Sync (Recommended)**
+Example:
 
-```shell
-# Sync only new orders (timestamp-based)
-getl sync -f examples/configFiles/incremental_ecommerce_orders.json
-
-# Sync only new leads (primary key-based)
-getl sync -f examples/configFiles/incremental_crm_leads.json
-
-# Sync analytics events with Kafka integration
-getl sync -f examples/configFiles/incremental_analytics_events.json
+```bash
+CGO=1 go build ./...
 ```
 
-#### 📊 **Traditional ETL**
+This matters not only when building `GETL` directly, but also when another project imports `GETL` transitively.
 
-```shell
-# Basic synchronization: extracts data from a source and loads it into a destination
-getl sync -f examples/configFiles/exp_config_a.json
+## Primary Commands
 
-# Extract data with a custom SQL query
-getl extract --source "oracle_db" --query "SELECT * FROM products"
+Build:
 
-# Transform and load data using a custom configuration file
-getl transform -f examples/configFiles/exp_config_b.json
+```bash
+go build ./...
 ```
 
-### Configuration Examples
+Run tests:
 
-#### **🚀 NEW: Incremental Sync (High Performance)**
-
-```json
-{
-  "sourceType": "postgres",
-  "sourceConnectionString": "postgres://user:pass@localhost:5432/ecommerce",
-  "sourceTable": "orders",
-  "destinationType": "sqlite3",
-  "destinationConnectionString": "/analytics/orders.db",
-  "destinationTable": "orders_sync",
-  "outputFormat": "csv",
-  "outputPath": "/exports/orders_incremental.csv",
-
-  "incrementalSync": {
-    "enabled": true,
-    "strategy": "timestamp",
-    "timestampField": "created_at",
-    "stateFile": "/state/orders-sync.json"
-  }
-}
+```bash
+go test ./...
 ```
 
-> **📈 Performance**: Processes only new records, 10x-300x faster than full sync!
+The exact operational command surface can vary by flow, but `GETL` is already being consumed through higher-level orchestration from `GNyx`.
 
-#### **Example 1: Basic Synchronization**
+## Configuration Model
 
-```json
-{
-  "sourceType": "godror",
-  "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
-  "destinationType": "sqlite3",
-  "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
-  "destinationTable": "erp_products",
-  "destinationTablePrimaryKey": "CODPARC",
-  "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
-  "outputFormat": "csv",
-  "outputPath": "/home/user/Documents/erp_products.csv",
-  "needCheck": true,
-  "checkMethod": "SELECT * FROM erp_products WHERE CODPARC = ? AND NOMEPARC = ?",
-  "kafkaURL": "",
-  "kafkaTopic": "",
-  "kafkaGroupID": ""
-}
-```
+`GETL` is configuration-driven.
 
-#### **Example 2: Continuous Synchronization**
+Recent practical improvement:
 
-```json
-{
-  "sourceType": "godror",
-  "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
-  "destinationType": "sqlite3",
-  "destinationConnectionString": "/home/user/.kubex/web/gorm.db",
-  "destinationTable": "erp_products",
-  "destinationTablePrimaryKey": "CODPARC",
-  "sqlQuery": "SELECT P.CODPARC, P.NOMEPARC FROM TABLE P",
-  "syncInterval": "30 * * * * *",
-  "kafkaURL": "",
-  "kafkaTopic": "",
-  "kafkaGroupID": ""
-}
-```
+- environment variable expansion in config loading now works, which means repository-committed sync manifests no longer need to hardcode local DSNs or machine-specific values
 
-#### **Example 3: Detailed Transformations**
+That made it viable to keep reusable sync configs in version control while still running them across different environments.
 
-```json
-{
-  "sourceType": "sqlite3",
-  "sourceConnectionString": "/home/user/.kubex/web/gorm.db",
-  "sourceTable": "erp_products",
-  "sourceTablePrimaryKey": "CODPROD",
-  "sqlQuery": "",
-  "destinationType": "sqlServer",
-  "destinationConnectionString": "sqlserver://username:password@localhost:1433?database=my_db_test&encrypt=disable&trustservercertificate=true",
-  "destinationTable": "erp_products_test",
-  "destinationTablePrimaryKey": "id_v",
-  "kafkaURL": "",
-  "kafkaTopic": "",
-  "kafkaGroupID": "",
-  "transformations": [
-    {
-      "sourceField": "CODPROD",
-      "destinationField": "id_v",
-      "operation": "none",
-      "sPath": "erp_products",
-      "dPath": "erp_products_test"
-    },
-    {
-      "sourceField": "PRODDESCR",
-      "destinationField": "name_v",
-      "operation": "none",
-      "sPath": "erp_products",
-      "dPath": "erp_products_test"
-    }
-    // Additional transformations can be specified here.
-  ]
-}
-```
+## PostgreSQL and Catalog Sync Use Case
 
----
+A key real use case now exists:
 
-## Configuration
+- Sankhya BI metadata CSVs are loaded into PostgreSQL
+- target schema: `sankhya_catalog`
+- registry/governance stays in `Domus`
+- orchestration command currently lives in `GNyx`
 
-Getl uses JSON or YAML configuration files (supporting JSONC for comments) to set up data source and destination connections, transformation rules, and synchronization intervals.
+In practical terms:
 
-### 📚 **Documentation**
+- `GETL` handles ingestion/materialization
+- `Domus` hosts the active PostgreSQL runtime and external metadata registry
+- `GNyx` orchestrates the domain-specific sync flow
 
-- **[Incremental Sync Guide](docs/INCREMENTAL_SYNC.md)** - Complete guide for high-performance incremental synchronization
-- **[Configuration Examples](examples/configFiles/)** - Ready-to-use configuration files for common scenarios
+This is a strong example of `GETL` being used as an actual ecosystem tool rather than a standalone experiment.
 
-### 🎯 **Key Configuration Sections**
+## Current Role in the Ecosystem
 
-- **Database Connections**: Support for Oracle, PostgreSQL, MySQL, SQLite, SQL Server
-- **Incremental Sync**: Configure timestamp, primary key, or hash-based strategies
-- **Transformations**: Field mapping and data transformation rules
-- **Output Formats**: CSV, JSON, XML, YAML, PDF export options
-- **Real-time Integration**: Kafka and messaging system configuration
+Today `GETL` is especially relevant for:
 
----
+- metadata ingestion fronts
+- catalog loading into PostgreSQL
+- future broader ETL and sync scenarios across Kubex projects
 
-## Roadmap
+Its role increased materially once the metadata-driven BI proof of concept became a real `GNyx` feature path.
 
-### ✅ **Recently Completed:**
+## Current Limitations
 
-- **Incremental Sync Engine**: Timestamp, Primary Key, and Hash-based strategies
-- **Smart Type Detection**: Automatic data type inference and mapping
-- **State Management**: Robust sync state tracking and recovery
-- **Production-Ready CLI**: Intuitive interface with comprehensive logging
+Current limitations include:
 
-### 🔜 **Coming Soon:**
+- ecosystem use is still concentrated in a few concrete flows rather than every theoretical capability
+- the overall surface is broader than the currently battle-tested slice
+- `godror` and CGO requirements add practical build constraints in some environments
 
-- **Hash-based Sync**: Complete implementation for change detection
-- **Bidirectional Sync**: Two-way data synchronization
-- **Auto-discovery**: Automatic schema and relationship detection
-- **Web Dashboard**: Real-time monitoring and management interface
-- **Advanced Transformations**: Custom functions and complex data operations
-- **Enhanced Kafka Integration**: Stream processing and real-time pipelines
+## Screenshots
 
----
+Placeholder suggestions:
 
-## Contributing
-
-Contributions are welcome!
-Please feel free to open issues or submit pull requests. For more details, see the [Contributing Guide](CONTRIBUTING.md).
-
----
-
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
----
-
-## Contact
-
-- **Developer:** [Rafael Mori](mailto:faelmori@gmail.com)
-- **GitHub:** [faelmori](https://github.com/faelmori)
-
-If you find this project interesting or would like to collaborate, please reach out!
-
----
+- `[Screenshot Placeholder: sync command output]`
+- `[Screenshot Placeholder: target PostgreSQL tables]`
+- `[Screenshot Placeholder: config example]`
