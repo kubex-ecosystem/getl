@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+# ====== Go Version Management ======
+# Ensures exact Go version match with go.mod
+# Integrates with GoSetup for installation
+
+get_required_go_version() {
+  # If _VERSION_GO is set, use it directly
+  if [[ -n "${_VERSION_GO:-}" ]]; then
+    echo "${_VERSION_GO:-}"
+    return 0
+  fi
+
+  _VERSION_GO="$(jq -r '.go_version' "${_ROOT_DIR:-$(git rev-parse --show-toplevel)}/${_MANIFEST_SUBPATH:-"internal/module/info/manifest.json"}" 2>/dev/null || echo "")"
+  if [[ -n "${_VERSION_GO:-}" && "${_VERSION_GO:-}" != "null" ]]; then
+    echo "${_VERSION_GO:-}"
+    return 0
+  fi
+
+  local go_mod_path="${1:-}"
+  go_mod_path="${go_mod_path:-${_ROOT_DIR:-$(git rev-parse --show-toplevel)}/go.mod}"
+
+  if [[ ! -f "${go_mod_path}" ]]; then
+    echo "1.25.3" # fallback
+    return 0
+  fi
+
+  # Extract go version from go.mod
+  _VERSION_GO="$(awk '/^go / {print $2; exit}' "${go_mod_path}" || echo "")"
+  if [[ -z "${_VERSION_GO:-}" ]]; then
+    echo "1.25.3" # fallback
+  else
+    echo "${_VERSION_GO:-}"
+  fi
+}
+
+get_current_go_version() {
+  if ! command -v go >/dev/null 2>&1; then
+    echo "not-installed"
+    return
+  fi
+
+  go version | awk '{print $3}' | sed 's/go//'
+}
+
+check_go_version_compatibility() {
+  local required_version current_version
+
+  required_version="${1:-$(get_required_go_version "${_ROOT_DIR}/go.mod")}"
+  current_version="${2:-$(get_current_go_version)}"
+
+  if [[ "${current_version}" == "not-installed" ]]; then
+    log error "Go is not installed"
+    return 1
+  fi
+
+  if [[ "${current_version}" != "${required_version}" ]]; then
+    log warn "Go version mismatch:"
+    log warn "  Required: ${required_version} (from go.mod)"
+    log warn "  Current:  ${current_version}"
+    log warn "  Use GoSetup to install: gosetup install ${required_version}"
+    return 1
+  fi
+
+  log info "Go version OK: ${current_version}"
+  return 0
+}
+
+auto_install_go_with_gosetup() {
+  local required_version go_setup_url
+
+  required_version="${1:-$(get_required_go_version "${_ROOT_DIR}/go.mod")}"
+  go_setup_url='https://raw.githubusercontent.com/kubex-ecosystem/gosetup/main/go.sh'
+
+  log info "Installing Go ${required_version} using GoSetup..."
+
+  local go_installation_output
+  if [[ ! -d /dev/stdin ]]; then
+    # Interactive mode
+    go_installation_output="$(bash -c "$(curl -sSfL "${go_setup_url}")" -s install "${required_version}" 2>&1)"
+  else
+    # Non-interactive mode
+    go_installation_output="$(export NON_INTERACTIVE=true; bash -c "$(curl -sSfL "${go_setup_url}")" -s install "${required_version}" 2>&1)"
+  fi
+
+  # shellcheck disable=SC2181
+  if [[ $? -eq 0 ]]; then
+    log success "Go ${required_version} installed successfully via GoSetup"
+    log info "GoSetup output: ${go_installation_output}"
+    return 0
+  else
+    log error "Failed to install Go ${required_version} via GoSetup"
+    log error "Output: ${go_installation_output}"
+    return 1
+  fi
+}
+
+# Export functions
+export -f get_required_go_version
+export -f get_current_go_version
+export -f check_go_version_compatibility
+export -f auto_install_go_with_gosetup

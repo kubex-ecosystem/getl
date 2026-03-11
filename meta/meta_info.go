@@ -1,13 +1,12 @@
 package meta
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
-
-	"github.com/faelmori/gkbxsrv/utils"
 
 	gl "github.com/kubex-ecosystem/logz"
 )
@@ -32,7 +31,7 @@ func CheckAndUpdateHashes(db *sql.DB, tableName string) (bool, error) {
 		{"DESCRPROD": "Produto1", "RESERVADO": "10", "SALDO": "90", "PRECO": "10.00"},
 	}
 
-	hash := utils.NewHash()
+	hash := sha256.New()
 	for _, row := range data {
 		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
 		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
@@ -78,7 +77,7 @@ func createInternalSchema(db *sql.DB) error {
 // Função para verificar e atualizar hashes
 func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, error) {
 	// Gerar um hash incremental para o conjunto de dados
-	hash := utils.NewHash()
+	hash := sha256.New()
 	for _, row := range data {
 		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
 		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))

@@ -18,7 +18,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/faelmori/gkbxsrv/utils"
 	gl "github.com/kubex-ecosystem/logz"
 )
 
@@ -250,7 +249,7 @@ func GenerateConfigTemplate(filePath string) error {
 	}
 
 	if filePath == "" {
-		homeFilePath, filePathErr := utils.GetWorkDir()
+		homeFilePath, filePathErr := GetWorkDir()
 		if filePathErr != nil {
 			return fmt.Errorf("falha ao obter o diretório HOME: %v", filePathErr)
 		}
@@ -272,7 +271,7 @@ func GenerateConfigTemplate(filePath string) error {
 	return nil
 }
 func GetETLJobs() (JobList, error) {
-	cwd, cwdErr := utils.GetWorkDir()
+	cwd, cwdErr := GetWorkDir()
 	if cwdErr != nil {
 		gl.Log("error", "failed to get current working directory: "+cwdErr.Error())
 		return nil, cwdErr

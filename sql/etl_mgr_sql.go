@@ -4,11 +4,13 @@ import (
 	"database/sql"
 	"encoding/json"
 	"encoding/xml"
+
+	"gopkg.in/yaml.v3"
+
 	"fmt"
 	"sort"
 
 	"github.com/charmbracelet/lipgloss"
-	_ "github.com/denisenkom/go-mssqldb"
 	. "github.com/kubex-ecosystem/getl/etypes"
 	"github.com/kubex-ecosystem/getl/extr"
 	. "github.com/kubex-ecosystem/getl/utils"
@@ -21,13 +23,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/faelmori/gkbxsrv/utils"
-	_ "github.com/godror/godror"
 	gl "github.com/kubex-ecosystem/logz"
 	ui "github.com/kubex-ecosystem/xtui/components"
+
+	_ "github.com/denisenkom/go-mssqldb"
+	_ "github.com/godror/godror"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
-	"gopkg.in/yaml.v3"
 )
 
 func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath string, outputFormat string) error {
@@ -625,7 +627,12 @@ func SaveDataToXML(filePath string, data []Data) error {
 		return fmt.Errorf("dados não informados")
 	}
 
-	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
+	if ensureDirErr := os.MkdirAll(filepath.Dir(filePath), 0644); ensureDirErr != nil {
+		gl.Log("error", "Failed to ensure file: "+ensureDirErr.Error())
+		return fmt.Errorf("Failed to ensure file: %v", ensureDirErr)
+	}
+
+	if ensureFileErr := os.WriteFile(filePath, []byte{}, 0644); ensureFileErr != nil {
 		gl.Log("error", "Failed to ensure file: "+ensureFileErr.Error())
 		return fmt.Errorf("Failed to ensure file: %v", ensureFileErr)
 	}
@@ -688,9 +695,14 @@ func SaveDataToYAML(filePath string, data []Data) error {
 		return fmt.Errorf("dados não informados")
 	}
 
-	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
+	if ensureDirErr := os.MkdirAll(filepath.Dir(filePath), 0644); ensureDirErr != nil {
+		gl.Log("error", "Failed to ensure file: "+ensureDirErr.Error())
+		return fmt.Errorf("Failed to ensure file: %v", ensureDirErr)
+	}
+
+	if ensureFileErr := os.WriteFile(filePath, []byte{}, 0644); ensureFileErr != nil {
 		gl.Log("error", "Failed to ensure file: "+ensureFileErr.Error())
-		return ensureFileErr
+		return fmt.Errorf("Failed to ensure file: %v", ensureFileErr)
 	}
 
 	file, openFileErr := os.OpenFile(filePath, os.O_RDWR|os.O_CREATE, 0644)
@@ -723,7 +735,12 @@ func SaveDataToJSON(filePath string, data []Data) error {
 		return fmt.Errorf("dados não informados")
 	}
 
-	if ensureFileErr := utils.EnsureFile(filePath, 0644, []string{}); ensureFileErr != nil {
+	if ensureDirErr := os.MkdirAll(filepath.Dir(filePath), 0644); ensureDirErr != nil {
+		gl.Log("error", "Failed to ensure file: "+ensureDirErr.Error())
+		return fmt.Errorf("Failed to ensure file: %v", ensureDirErr)
+	}
+
+	if ensureFileErr := os.WriteFile(filePath, []byte{}, 0644); ensureFileErr != nil {
 		gl.Log("error", "Failed to ensure file: "+ensureFileErr.Error())
 		return fmt.Errorf("Failed to ensure file: %v", ensureFileErr)
 	}
