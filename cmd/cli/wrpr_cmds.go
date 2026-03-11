@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
 	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
@@ -106,17 +105,6 @@ func LoadCmd() *cobra.Command {
 			destinationConfig, err := LoadConfigFile(fileConfigPath)
 			if err != nil {
 				return fmt.Errorf("falha ao carregar configuração do destino: %v", err)
-			}
-
-			// Ler os dados transformados do arquivo JSON
-			fileData, fileDataErr := os.ReadFile("extracted_data.json")
-			if fileDataErr != nil {
-				return fmt.Errorf("falha ao ler o arquivo de dados extraídos: %v", fileDataErr)
-			}
-
-			var data []Data
-			if unmarshalErr := json.Unmarshal(fileData, &data); unmarshalErr != nil {
-				return fmt.Errorf("falha ao processar dados JSON: %v", unmarshalErr)
 			}
 
 			// Carregar os dados no banco de destino

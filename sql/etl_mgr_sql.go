@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"fmt"
+	"sort"
 
 	"github.com/charmbracelet/lipgloss"
 	_ "github.com/denisenkom/go-mssqldb"
 	. "github.com/kubex-ecosystem/getl/etypes"
+	"github.com/kubex-ecosystem/getl/extr"
 	. "github.com/kubex-ecosystem/getl/utils"
 
 	//ui "github.com/kubex-ecosystem/kbx/mods/ui/components"
@@ -122,21 +124,213 @@ func inferTypeFromValue(value interface{}) string {
 	}
 }
 
+func normalizeDriverName(driver string) string {
+	switch strings.ToLower(strings.TrimSpace(driver)) {
+	case "postgresql", "pg":
+		return "postgres"
+	case "sqlite":
+		return "sqlite3"
+	default:
+		return strings.ToLower(strings.TrimSpace(driver))
+	}
+}
+
+func isCSVSource(sourceType string) bool {
+	return normalizeDriverName(sourceType) == "csv"
+}
+
+func promoteInferredType(current, candidate string) string {
+	if candidate == "" {
+		return current
+	}
+	if current == "" {
+		return candidate
+	}
+	if current == candidate {
+		return current
+	}
+	if current == "TEXT" || candidate == "TEXT" {
+		return "TEXT"
+	}
+	if (current == "INTEGER" && candidate == "REAL") || (current == "REAL" && candidate == "INTEGER") {
+		return "REAL"
+	}
+	return "TEXT"
+}
+
+func extractCSVDataWithTypes(config Config) ([]Data, map[string]string, error) {
+	csvPath := strings.TrimSpace(config.SourceConnectionString)
+	if csvPath == "" {
+		return nil, nil, fmt.Errorf("sourceConnectionString deve apontar para o arquivo CSV")
+	}
+
+	table := extr.NewCSVDataTable(nil, csvPath)
+	if err := table.LoadFile(); err != nil {
+		return nil, nil, err
+	}
+
+	data, err := table.ExtractData(nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	columnTypes := make(map[string]string)
+	for _, header := range table.Headers() {
+		columnTypes[header] = "TEXT"
+	}
+
+	for _, row := range data {
+		for column, value := range row {
+			inferredType := inferTypeFromValue(value)
+			if inferredType == "TEXT" && strings.TrimSpace(fmt.Sprintf("%v", value)) == "" {
+				continue
+			}
+			columnTypes[column] = promoteInferredType(columnTypes[column], inferredType)
+		}
+	}
+
+	return data, columnTypes, nil
+}
+
+func resolveDestinationFieldTypes(sourceTypes map[string]string, transformations []Transformation) (map[string]string, error) {
+	if len(transformations) == 0 {
+		fields := make(map[string]string, len(sourceTypes))
+		for field, fieldType := range sourceTypes {
+			fields[field] = fieldType
+		}
+		return fields, nil
+	}
+
+	fields := make(map[string]string, len(transformations))
+	for _, transformation := range transformations {
+		sourceFieldType := sourceTypes[transformation.SourceField]
+		if sourceFieldType == "" {
+			return nil, fmt.Errorf("tipo do campo fonte não encontrado: %s", transformation.SourceField)
+		}
+
+		destinationField := transformation.DestinationField
+		if destinationField == "" {
+			destinationField = transformation.SourceField
+		}
+
+		destinationType := transformation.Type
+		if destinationType == "" {
+			switch strings.ToLower(strings.TrimSpace(transformation.Operation)) {
+			case "", "copy", "none":
+				destinationType = sourceFieldType
+			case "uppercase", "base64":
+				destinationType = "TEXT"
+			case "toint":
+				destinationType = "INTEGER"
+			default:
+				destinationType = sourceFieldType
+			}
+		}
+
+		fields[destinationField] = destinationType
+	}
+
+	return fields, nil
+}
+
+func buildPlaceholder(driver string, index int) string {
+	switch normalizeDriverName(driver) {
+	case "postgres":
+		return fmt.Sprintf("$%d", index)
+	case "sqlserver", "mssql":
+		return fmt.Sprintf("@p%d", index)
+	case "oracle", "godror":
+		return fmt.Sprintf(":%d", index)
+	default:
+		return "?"
+	}
+}
+
+func buildConflictClause(driver, updateKey string, columns []string) (string, error) {
+	if updateKey == "" {
+		return "", nil
+	}
+
+	switch normalizeDriverName(driver) {
+	case "postgres", "sqlite3":
+		assignments := make([]string, 0, len(columns))
+		for _, column := range columns {
+			if column == updateKey {
+				continue
+			}
+			assignments = append(assignments, fmt.Sprintf("%s = EXCLUDED.%s", column, column))
+		}
+		if len(assignments) == 0 {
+			return fmt.Sprintf(" ON CONFLICT (%s) DO NOTHING", updateKey), nil
+		}
+		return fmt.Sprintf(" ON CONFLICT (%s) DO UPDATE SET %s", updateKey, strings.Join(assignments, ", ")), nil
+	default:
+		return "", fmt.Errorf("UpdateKey ainda não suportado para destino %s", driver)
+	}
+}
+
+func executeInsertBatch(tx *sql.Tx, config Config, data []Data) error {
+	for _, row := range data {
+		columns := make([]string, 0, len(row))
+		for column := range row {
+			columns = append(columns, column)
+		}
+		sort.Strings(columns)
+
+		placeholders := make([]string, 0, len(columns))
+		args := make([]interface{}, 0, len(columns))
+		for index, column := range columns {
+			placeholders = append(placeholders, buildPlaceholder(config.DestinationType, index+1))
+			args = append(args, row[column])
+		}
+
+		conflictClause, err := buildConflictClause(config.DestinationType, config.UpdateKey, columns)
+		if err != nil {
+			return err
+		}
+
+		insertQuery := fmt.Sprintf(
+			"INSERT INTO %s (%s) VALUES (%s)%s",
+			config.DestinationTable,
+			strings.Join(columns, ", "),
+			strings.Join(placeholders, ", "),
+			conflictClause,
+		)
+
+		if _, err := tx.Exec(insertQuery, args...); err != nil {
+			return fmt.Errorf("falha ao executar insert: %w", err)
+		}
+	}
+
+	return nil
+}
+
 func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]string, error) {
+	config.SourceType = normalizeDriverName(config.SourceType)
+	config.DestinationType = normalizeDriverName(config.DestinationType)
+
+	if isCSVSource(config.SourceType) {
+		return extractCSVDataWithTypes(config)
+	}
+
 	var db *sql.DB
 	var dbErr error
+	shouldCloseDB := false
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.SourceType, config.SourceConnectionString)
 		if dbErr != nil {
 			gl.Log("error", "Failed to connect to source database: "+dbErr.Error())
 			return nil, nil, dbErr
 		}
+		shouldCloseDB = true
 	} else {
 		db = dbSQL
 	}
-	defer func(db *sql.DB) {
-		_ = db.Close()
-	}(db)
+	if shouldCloseDB {
+		defer func(db *sql.DB) {
+			_ = db.Close()
+		}(db)
+	}
 
 	gl.Log("info", "Starting data extraction")
 
@@ -300,6 +494,7 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 	return nil
 }
 func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
+	config.SourceType = normalizeDriverName(config.SourceType)
 	if config.SQLQuery == "" {
 		gl.Log("error", "query SQL não informada")
 		return nil, nil, fmt.Errorf("query SQL não informada")
@@ -307,18 +502,22 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 
 	var db *sql.DB
 	var dbErr error
+	shouldCloseDB := false
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.SourceType, config.SourceConnectionString)
 		if dbErr != nil {
 			gl.Log("error", fmt.Sprintf("falha ao conectar ao banco de dados: %v", dbErr))
 			return nil, nil, dbErr
 		}
+		shouldCloseDB = true
 	} else {
 		db = dbSQL
 	}
-	defer func(db *sql.DB) {
-		_ = db.Close()
-	}(db)
+	if shouldCloseDB {
+		defer func(db *sql.DB) {
+			_ = db.Close()
+		}(db)
+	}
 
 	rows, queryErr := db.Query(config.SQLQuery)
 	if queryErr != nil {
@@ -549,8 +748,12 @@ func SaveDataToJSON(filePath string, data []Data) error {
 	return nil
 }
 func LoadData(dbSQL *sql.DB, config Config) error {
+	config.SourceType = normalizeDriverName(config.SourceType)
+	config.DestinationType = normalizeDriverName(config.DestinationType)
+
 	var db *sql.DB
 	var dbErr error
+	shouldCloseDB := false
 
 	if dbSQL == nil {
 		db, dbErr = sql.Open(config.DestinationType, config.DestinationConnectionString)
@@ -558,57 +761,40 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 			gl.Log("error", "Failed to connect to destination database: "+dbErr.Error())
 			return dbErr
 		}
+		shouldCloseDB = true
 	} else {
 		db = dbSQL
 	}
-	defer func(db *sql.DB) {
-		_ = db.Close()
-	}(db)
+	if shouldCloseDB {
+		defer func(db *sql.DB) {
+			_ = db.Close()
+		}(db)
+	}
 
-	var fieldsWithType map[string]string
 	var data []Data
 	var fieldsErr error
 
-	data, fieldsWithType, fieldsErr = ExtractDataWithTypes(nil, config)
+	data, sourceFieldTypes, fieldsErr := ExtractDataWithTypes(nil, config)
 	if fieldsErr != nil {
 		gl.Log("error", "Failed to extract data: "+fieldsErr.Error())
 		return fieldsErr
-	}
-
-	fieldsDest := make(map[string]string) // Inicializar o map aqui
-	var fieldsList []string
-	if config.Transformations != nil {
-		for _, t := range config.Transformations {
-			if t.Type == "" {
-				if fieldType, ok := fieldsWithType[t.SourceField]; ok {
-					t.Type = fieldType
-				} else {
-					gl.Log("error", "Failed to get field type: "+t.SourceField)
-					return fmt.Errorf("Failed to get field type: %s", t.SourceField)
-				}
-			} else {
-				fieldsWithType[t.SourceField] = t.Type
-			}
-			fieldsDest[t.DestinationField] = t.Type
-			fieldsList = append(fieldsList, t.DestinationField)
-		}
-	}
-
-	fieldsDest = fieldsWithType
-	fieldsList = make([]string, 0, len(fieldsDest))
-	for field := range fieldsDest {
-		fieldsList = append(fieldsList, field)
-	}
-
-	if ensureTableExistsWithTypesErr := EnsureTableExistsWithTypes(db, config, fieldsDest); ensureTableExistsWithTypesErr != nil {
-		gl.Log("error", "Failed to ensure table exists: "+ensureTableExistsWithTypesErr.Error())
-		return ensureTableExistsWithTypesErr
 	}
 
 	transformedData, transformedDataErr := ApplyTransformations(data, config.Transformations)
 	if transformedDataErr != nil {
 		gl.Log("error", "Failed to apply transformations: "+transformedDataErr.Error())
 		return transformedDataErr
+	}
+
+	destinationFieldTypes, fieldTypeErr := resolveDestinationFieldTypes(sourceFieldTypes, config.Transformations)
+	if fieldTypeErr != nil {
+		gl.Log("error", "Failed to resolve destination field types: "+fieldTypeErr.Error())
+		return fieldTypeErr
+	}
+
+	if ensureTableExistsWithTypesErr := EnsureTableExistsWithTypes(db, config, destinationFieldTypes); ensureTableExistsWithTypesErr != nil {
+		gl.Log("error", "Failed to ensure table exists: "+ensureTableExistsWithTypesErr.Error())
+		return ensureTableExistsWithTypesErr
 	}
 
 	if config.OutputPath != "" {
@@ -623,54 +809,13 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 		gl.Log("error", fmt.Sprintf("Failed to start transaction: %v", txErr))
 		return fmt.Errorf("Failed to start transaction: %v", txErr)
 	}
-	var insertQuery string
-	for _, row := range transformedData {
-		var columns, values, conlictFallback strings.Builder
-		columns.WriteString(fmt.Sprintf("INSERT INTO %s (", config.DestinationTable))
-		values.WriteString("VALUES (")
-		i := 0
-		for col, val := range row {
-			if i > 0 {
-				columns.WriteString(", ")
-				values.WriteString(", ")
-			}
-			columns.WriteString(col)
-			values.WriteString(formatValue(val))
-			if config.UpdateKey != "" {
-				if i > 0 {
-					conlictFallback.WriteString(", ")
-				}
-				conlictFallback.WriteString(fmt.Sprintf("%s = %s", col, formatValue(val)))
-			}
-			i++
-		}
-
-		// Por hora vou checar só o primeiro campo. Depois implemento o resto da lógica
-		var checkQuery strings.Builder
-		if config.UpdateKey != "" {
-			checkQuery.WriteString(fmt.Sprintf(") ON CONFLICT (%s) DO UPDATE SET %s", config.UpdateKey, conlictFallback.String()))
-		} else {
-			values.WriteString(")")
-			values.WriteString(";")
-		}
-		columns.WriteString(") ")
-		insertQuery = columns.String() + values.String()
-		if conlictFallback.Len() > 0 {
-			insertQuery += checkQuery.String() + ";"
-		} else {
-			insertQuery += ";"
-		}
-		_, err := db.Exec(insertQuery)
-		if err != nil {
-			_ = tx.Rollback()
-			//logz.DebugLog(fmt.Sprintf("Failed to execute insert query: %v", insertQuery), map[string]interface{}{})
-			gl.Log("error", "Failed to execute insert query: "+err.Error())
-			return fmt.Errorf("Failed to execute insert query: %v", err)
-		}
+	if err := executeInsertBatch(tx, config, transformedData); err != nil {
+		_ = tx.Rollback()
+		gl.Log("error", "Failed to execute insert query: "+err.Error())
+		return err
 	}
 
 	if commitErr := tx.Commit(); commitErr != nil {
-		//logz.DebugLog(fmt.Sprintf("Failed to commit insertion: %v", insertQuery), map[string]interface{}{})
 		gl.Log("error", "Failed to commit transaction: "+commitErr.Error())
 		return fmt.Errorf("Failed to commit transaction: %v", commitErr)
 	}
@@ -716,7 +861,7 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 	loadDataErr := LoadData(nil, config)
 	if loadDataErr != nil {
 		gl.Log("error", fmt.Sprintf("falha ao carregar os dados no destino: %v", loadDataErr))
-		return loadConfigErr
+		return loadDataErr
 	}
 
 	gl.Log("info", "Processo de GETl finalizado com sucesso")

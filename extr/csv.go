@@ -1,9 +1,11 @@
 package extr
 
 import (
+	"bufio"
 	"encoding/csv"
 	"fmt"
 	"os"
+	"strings"
 
 	. "github.com/kubex-ecosystem/getl/etypes"
 	gl "github.com/kubex-ecosystem/getl/internal/module/logger"
@@ -11,6 +13,7 @@ import (
 
 type CSVDataTable struct {
 	data         []Data
+	headers      []string
 	filePath     string
 	filteredData []Data
 }
@@ -38,20 +41,35 @@ func (e *CSVDataTable) LoadFile() error {
 		return openFileErr
 	}
 	defer openFile.Close()
+
 	reader := csv.NewReader(openFile)
+	reader.Comma = detectCSVDelimiter(openFile)
+	reader.FieldsPerRecord = -1
+	reader.LazyQuotes = true
+	reader.TrimLeadingSpace = true
+
 	records, readErr := reader.ReadAll()
 	if readErr != nil {
 		gl.Log("error", "Failed to read CSV: "+readErr.Error())
 		return readErr
 	}
+	if len(records) == 0 {
+		return fmt.Errorf("csv vazio: %s", e.filePath)
+	}
+
+	e.headers = normalizeCSVHeaders(records[0])
 
 	for i, row := range records {
 		if i == 0 {
 			continue
 		}
 		data := make(Data)
-		for j, value := range row {
-			data[records[0][j]] = value
+		for j, header := range e.headers {
+			if j >= len(row) {
+				data[header] = ""
+				continue
+			}
+			data[header] = strings.TrimSpace(stripUTF8BOM(row[j]))
 		}
 		e.data = append(e.data, data)
 	}
@@ -61,6 +79,10 @@ func (e *CSVDataTable) LoadFile() error {
 
 func (e *CSVDataTable) LoadData(data []Data) {
 	e.data = data
+}
+
+func (e *CSVDataTable) Headers() []string {
+	return append([]string(nil), e.headers...)
 }
 
 func (e *CSVDataTable) ExtractFile() error {
@@ -75,8 +97,12 @@ func (e *CSVDataTable) ExtractFile() error {
 	defer writer.Flush()
 
 	var headers []string
-	for key := range e.data[0] {
-		headers = append(headers, key)
+	if len(e.headers) > 0 {
+		headers = append(headers, e.headers...)
+	} else {
+		for key := range e.data[0] {
+			headers = append(headers, key)
+		}
 	}
 	if writerErr := writer.Write(headers); writerErr != nil {
 		gl.Log("error", "Failed to write headers to CSV: "+writerErr.Error())
@@ -84,12 +110,13 @@ func (e *CSVDataTable) ExtractFile() error {
 	}
 	for _, row := range e.data {
 		var rowData []string
-		for _, value := range row {
+		for _, header := range headers {
+			value := row[header]
 			if value == nil {
 				rowData = append(rowData, "")
 				continue
 			}
-			rowData = append(rowData, value.(string))
+			rowData = append(rowData, fmt.Sprintf("%v", value))
 		}
 
 		if writerRowsErr := writer.Write(rowData); writerRowsErr != nil {
@@ -173,4 +200,46 @@ func (e *CSVDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	}
 
 	return filteredData, nil
+}
+
+func detectCSVDelimiter(file *os.File) rune {
+	if _, err := file.Seek(0, 0); err != nil {
+		return ','
+	}
+
+	reader := bufio.NewReader(file)
+	firstLine, err := reader.ReadString('\n')
+	if err != nil && firstLine == "" {
+		_, _ = file.Seek(0, 0)
+		return ','
+	}
+	_, _ = file.Seek(0, 0)
+
+	firstLine = stripUTF8BOM(firstLine)
+	candidates := []rune{';', ',', '\t', '|'}
+	best := ','
+	bestCount := -1
+
+	for _, candidate := range candidates {
+		count := strings.Count(firstLine, string(candidate))
+		if count > bestCount {
+			best = candidate
+			bestCount = count
+		}
+	}
+
+	return best
+}
+
+func normalizeCSVHeaders(headers []string) []string {
+	normalized := make([]string, 0, len(headers))
+	for _, header := range headers {
+		header = strings.TrimSpace(stripUTF8BOM(header))
+		normalized = append(normalized, header)
+	}
+	return normalized
+}
+
+func stripUTF8BOM(value string) string {
+	return strings.TrimPrefix(value, "\uFEFF")
 }

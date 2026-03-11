@@ -23,7 +23,7 @@ import (
 )
 
 func ApplyTransformations(data []Data, transformations []Transformation) ([]Data, error) {
-	if transformations == nil {
+	if len(transformations) == 0 {
 		return data, nil
 	}
 
@@ -36,31 +36,26 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 				return nil, fmt.Errorf("campo fonte não encontrado: %s", t.SourceField)
 			}
 
-			switch t.Operation {
+			destinationField := t.DestinationField
+			if destinationField == "" {
+				destinationField = t.SourceField
+			}
+
+			switch strings.ToLower(strings.TrimSpace(t.Operation)) {
 			case "copy", "none":
-				transformedRow[t.DestinationField] = value
+				transformedRow[destinationField] = value
 			case "uppercase":
-				if strValue, ok := value.(string); ok {
-					transformedRow[t.DestinationField] = strings.ToUpper(strValue)
-				} else {
-					return nil, fmt.Errorf("valor não é uma string: %v", value)
-				}
+				transformedRow[destinationField] = strings.ToUpper(asString(value))
 			case "base64":
-				if strValue, ok := value.(string); ok {
-					transformedRow[t.DestinationField] = base64.StdEncoding.EncodeToString([]byte(strValue))
-				} else {
-					return nil, fmt.Errorf("valor não é uma string: %v", value)
+				transformedRow[destinationField] = base64.StdEncoding.EncodeToString([]byte(asString(value)))
+			case "toint":
+				intValue, err := strconv.Atoi(asString(value))
+				if err != nil {
+					return nil, fmt.Errorf("falha ao converter para inteiro: %v", err)
 				}
-			case "toInt":
-				if strValue, ok := value.(string); ok {
-					intValue, err := strconv.Atoi(strValue)
-					if err != nil {
-						return nil, fmt.Errorf("falha ao converter para inteiro: %v", err)
-					}
-					transformedRow[t.DestinationField] = intValue
-				} else {
-					return nil, fmt.Errorf("valor não é uma string: %v", value)
-				}
+				transformedRow[destinationField] = intValue
+			case "":
+				transformedRow[destinationField] = value
 			default:
 				return nil, fmt.Errorf("operação desconhecida: %s", t.Operation)
 			}
@@ -69,6 +64,19 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 	}
 
 	return transformedData, nil
+}
+
+func asString(value interface{}) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	default:
+		return fmt.Sprintf("%v", value)
+	}
 }
 func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 	var config Config
