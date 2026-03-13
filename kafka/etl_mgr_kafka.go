@@ -5,11 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	s "github.com/faelmori/getl/sql"
-	"github.com/faelmori/logz"
-	"github.com/segmentio/kafka-go"
 	"sync"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+	s "github.com/kubex-ecosystem/getl/sql"
+	gl "github.com/kubex-ecosystem/logz"
+	"github.com/segmentio/kafka-go"
 )
 
 type IKafka interface {
@@ -158,19 +159,19 @@ func (k *Kafka) Close() {
 	defer k.mu.Unlock()
 	if k.Reader != nil {
 		if err := k.Reader.Close(); err != nil {
-			logz.Error("erro ao fechar o leitor Kafka: "+err.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao fechar o leitor Kafka: "+err.Error())
 		}
 	}
 	if k.Writer != nil {
 		if err := k.Writer.Close(); err != nil {
-			logz.Error("erro ao fechar o escritor Kafka: "+err.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao fechar o escritor Kafka: "+err.Error())
 		}
 	}
 }
 func (k *Kafka) SyncData() {
 	db, openErr := sql.Open(k.DestinationType, k.DestinationConnectionString)
 	if openErr != nil {
-		logz.Error("erro ao conectar ao banco de dados de destino: "+openErr.Error(), map[string]interface{}{})
+		gl.Log("error", "erro ao conectar ao banco de dados de destino: "+openErr.Error())
 		return
 	}
 	defer db.Close()
@@ -179,37 +180,37 @@ func (k *Kafka) SyncData() {
 	for {
 		msg, kafkaReaderErr := kafkaReader.ReadMessage(context.Background())
 		if kafkaReaderErr != nil {
-			logz.Error("erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error())
 			continue
 		}
 
 		var row = make(map[string]interface{})
 		if unmarshalErr := json.Unmarshal(msg.Value, &row); unmarshalErr != nil {
-			logz.Error("erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error())
 			continue
 		}
 
 		if loadDataErr := s.LoadData(db, k.KafkaConfig); loadDataErr != nil {
-			logz.Error("erro ao carregar dados no banco de destino: "+loadDataErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao carregar dados no banco de destino: "+loadDataErr.Error())
 		}
 	}
 }
 func (k *Kafka) RunETL() error {
 	db, dbErr := sql.Open(k.SourceType, k.SourceConnectionString)
 	if dbErr != nil {
-		return fmt.Errorf("falha ao conectar ao banco de dados de origem: %w", dbErr)
+		return fmt.Errorf("falha ao conectar ao banco de dados de origem: %v", dbErr)
 	}
 	defer db.Close()
 
 	rows, rowsErr := db.Query(k.KafkaConfig.SQLQuery)
 	if rowsErr != nil {
-		return fmt.Errorf("falha ao executar a consulta SQL: %w", rowsErr)
+		return fmt.Errorf("falha ao executar a consulta SQL: %v", rowsErr)
 	}
 	defer rows.Close()
 
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
-		return fmt.Errorf("falha ao obter colunas: %w", columnsErr)
+		return fmt.Errorf("falha ao obter colunas: %v", columnsErr)
 	}
 
 	for rows.Next() {
@@ -220,7 +221,7 @@ func (k *Kafka) RunETL() error {
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			return fmt.Errorf("falha ao escanear linha: %w", err)
+			return fmt.Errorf("falha ao escanear linha: %v", err)
 		}
 
 		rowMap := make(map[string]interface{})
@@ -230,14 +231,14 @@ func (k *Kafka) RunETL() error {
 
 		message, err := json.Marshal(rowMap)
 		if err != nil {
-			return fmt.Errorf("falha ao serializar linha: %w", err)
+			return fmt.Errorf("falha ao serializar linha: %v", err)
 		}
 
 		err = k.GetKafkaWriter().WriteMessages(context.Background(), kafka.Message{
 			Value: message,
 		})
 		if err != nil {
-			return fmt.Errorf("falha ao escrever mensagem no Kafka: %w", err)
+			return fmt.Errorf("falha ao escrever mensagem no Kafka: %v", err)
 		}
 	}
 
@@ -323,7 +324,7 @@ func CreateKafkaWriterWithConfig(kafkaURL, topic string) *kafka.Writer {
 func SyncData(config Config, kafkaReader *kafka.Reader) {
 	db, openErr := sql.Open(config.DestinationType, config.DestinationConnectionString)
 	if openErr != nil {
-		logz.Error("erro ao conectar ao banco de dados de destino: "+openErr.Error(), map[string]interface{}{})
+		gl.Log("error", "erro ao conectar ao banco de dados de destino: "+openErr.Error())
 		return
 	}
 	defer db.Close()
@@ -331,37 +332,37 @@ func SyncData(config Config, kafkaReader *kafka.Reader) {
 	for {
 		msg, kafkaReaderErr := kafkaReader.ReadMessage(context.Background())
 		if kafkaReaderErr != nil {
-			logz.Error("erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao ler mensagem do Kafka: "+kafkaReaderErr.Error())
 			continue
 		}
 
 		var row = make(map[string]interface{})
 		if unmarshalErr := json.Unmarshal(msg.Value, &row); unmarshalErr != nil {
-			logz.Error("erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao decodificar mensagem do Kafka: "+unmarshalErr.Error())
 			continue
 		}
 
 		if loadDataErr := s.LoadData(db, config); loadDataErr != nil {
-			logz.Error("erro ao carregar dados no banco de destino: "+loadDataErr.Error(), map[string]interface{}{})
+			gl.Log("error", "erro ao carregar dados no banco de destino: "+loadDataErr.Error())
 		}
 	}
 }
 func RunETL(config Config, kafkaWriter *kafka.Writer) error {
 	db, dbErr := sql.Open(config.SourceType, config.SourceConnectionString)
 	if dbErr != nil {
-		return fmt.Errorf("falha ao conectar ao banco de dados de origem: %w", dbErr)
+		return fmt.Errorf("falha ao conectar ao banco de dados de origem: %v", dbErr)
 	}
 	defer db.Close()
 
 	rows, rowsErr := db.Query(config.SQLQuery)
 	if rowsErr != nil {
-		return fmt.Errorf("falha ao executar a consulta SQL: %w", rowsErr)
+		return fmt.Errorf("falha ao executar a consulta SQL: %v", rowsErr)
 	}
 	defer rows.Close()
 
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
-		return fmt.Errorf("falha ao obter colunas: %w", columnsErr)
+		return fmt.Errorf("falha ao obter colunas: %v", columnsErr)
 	}
 
 	for rows.Next() {
@@ -372,7 +373,7 @@ func RunETL(config Config, kafkaWriter *kafka.Writer) error {
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			return fmt.Errorf("falha ao escanear linha: %w", err)
+			return fmt.Errorf("falha ao escanear linha: %v", err)
 		}
 
 		rowMap := make(map[string]interface{})
@@ -382,14 +383,14 @@ func RunETL(config Config, kafkaWriter *kafka.Writer) error {
 
 		message, err := json.Marshal(rowMap)
 		if err != nil {
-			return fmt.Errorf("falha ao serializar linha: %w", err)
+			return fmt.Errorf("falha ao serializar linha: %v", err)
 		}
 
 		err = kafkaWriter.WriteMessages(context.Background(), kafka.Message{
 			Value: message,
 		})
 		if err != nil {
-			return fmt.Errorf("falha ao escrever mensagem no Kafka: %w", err)
+			return fmt.Errorf("falha ao escrever mensagem no Kafka: %v", err)
 		}
 	}
 

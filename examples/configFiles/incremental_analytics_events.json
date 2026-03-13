@@ -1,0 +1,50 @@
+{
+  "sourceType": "godror",
+  "sourceConnectionString": "analytics_user/password@oracle-server:1521/ORCL",
+  "sourceTable": "user_events",
+  "destinationType": "postgres",
+  "destinationConnectionString": "postgres://warehouse_user:pass@warehouse:5432/analytics_dw",
+  "destinationTable": "events_fact",
+  "outputFormat": "csv",
+  "outputPath": "/exports/events_incremental.csv",
+
+  "incrementalSync": {
+    "enabled": true,
+    "strategy": "timestamp",
+    "timestampField": "event_timestamp",
+    "stateFile": "/state/analytics-events.json",
+    "batchSize": 10000
+  },
+
+  "transformations": [
+    {
+      "sourceField": "event_id",
+      "destinationField": "fact_key",
+      "operation": "none"
+    },
+    {
+      "sourceField": "user_id",
+      "destinationField": "user_key",
+      "operation": "none"
+    },
+    {
+      "sourceField": "event_name",
+      "destinationField": "event_type",
+      "operation": "none"
+    },
+    {
+      "sourceField": "event_timestamp",
+      "destinationField": "occurred_at",
+      "operation": "none"
+    },
+    {
+      "sourceField": "session_id",
+      "destinationField": "session_key",
+      "operation": "none"
+    }
+  ],
+
+  "kafkaURL": "kafka-cluster:9092",
+  "kafkaTopic": "analytics.events.incremental",
+  "kafkaGroupID": "getl-analytics-sync"
+}

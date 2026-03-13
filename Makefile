@@ -1,114 +1,167 @@
-APP_NAME := getl
-ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
-BINARY_NAME := $(ROOT_DIR)$(APP_NAME)
-CMD_DIR := $(ROOT_DIR)cmd
-INSTALL_SCRIPT=$(ROOT_DIR)scripts/install.sh
-ARGS :=
+# Description: Makefile for building and installing a Go application
+# Author: Rafael Mori
+# Copyright (c) 2025 Rafael Mori
+# License: MIT License
 
-# Colors
-COLOR_RESET := \033[0m
+# Define the application name and root directory
+ROOT_DIR := $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
+TARGET_MANIFEST = $(ROOT_DIR)internal/module/info/manifest.json
+APP_NAME := $(shell jq -r '.name' < $(TARGET_MANIFEST))
+_RUN_PRE_SCRIPTS := $(shell echo "true")
+_RUN_POST_SCRIPTS := $(shell echo "true")
+
+ifeq ($(APP_NAME),)
+APP_NAME := $(shell  echo $(basename $(CURDIR)) | tr '[:upper:]' '[:lower:]')
+endif
+ORGANIZATION := $(shell jq -r '.organization' < $(TARGET_MANIFEST))
+ifeq ($(ORGANIZATION),)
+ORGANIZATION := $(shell git config --get user.name | tr '[:upper:]' '[:lower:]')
+endif
+ifeq ($(ORGANIZATION),)
+ORGANIZATION := $(shell git config --get user.email | cut -d '@' -f 1 | tr '[:upper:]' '[:lower:]')
+endif
+ifeq ($(ORGANIZATION),)
+ORGANIZATION := $(shell echo $(USER) | tr '[:upper:]' '[:lower:]')
+endif
+REPOSITORY := $(shell jq -r '.repository' < $(TARGET_MANIFEST))
+ifeq ($(REPOSITORY),)
+REPOSITORY := $(shell git config --get remote.origin.url)
+endif
+ifeq ($(REPOSITORY),)
+REPOSITORY := $(shell git config --get remote.upstream.url)
+endif
+ifeq ($(REPOSITORY),)
+REPOSITORY := $(printf 'https://github.com/%s/%s.git' $(ORGANIZATION) $(APP_NAME))
+endif
+DESCRIPTION := $(shell jq -r '.description' < $(TARGET_MANIFEST))
+ifeq ($(DESCRIPTION),)
+DESCRIPTION := $(shell git log -1 --pretty=%B | head -n 1)
+endif
+BINARY_NAME := $(shell jq -r '.bin' < $(TARGET_MANIFEST))
+ifeq ($(BINARY_NAME),)
+BINARY_NAME := $(ROOT_DIR)dist/$(APP_NAME)
+else
+BINARY_NAME := $(ROOT_DIR)dist/$(BINARY_NAME)
+endif
+CMD_DIR := $(ROOT_DIR)cmd
+
+# Define the color codes
 COLOR_GREEN := \033[32m
 COLOR_YELLOW := \033[33m
 COLOR_RED := \033[31m
 COLOR_BLUE := \033[34m
+COLOR_RESET := \033[0m
 
 # Logging Functions
-log = @printf "$(COLOR_BLUE)[LOG]$(COLOR_RESET) %s\n" "$(1)"
-success = @printf "$(COLOR_GREEN)[SUCCESS]$(COLOR_RESET) %s\n" "$(1)"
-warning = @printf "$(COLOR_YELLOW)[WARNING]$(COLOR_RESET) %s\n" "$(1)"
-break = @printf "$(COLOR_BLUE)[LOG]$(COLOR_RESET)\n"
-error = @printf "$(COLOR_RED)[ERROR]$(COLOR_RESET) %s\n" "$(1)" && exit 1
+log = @printf "%b%s%b %s\n" "$(COLOR_BLUE)" "[LOG]" "$(COLOR_RESET)" "$(1)"
+log_info = @printf "%b%s%b %s\n" "$(COLOR_BLUE)" "[INFO]" "$(COLOR_RESET)" "$(1)"
+log_success = @printf "%b%s%b %s\n" "$(COLOR_GREEN)" "[SUCCESS]" "$(COLOR_RESET)" "$(1)"
+log_warning = @printf "%b%s%b %s\n" "$(COLOR_YELLOW)" "[WARNING]" "$(COLOR_RESET)" "$(1)"
+log_break = @printf "%b%s%b\n" "$(COLOR_BLUE)" "[INFO]" "$(COLOR_RESET)"
+log_error = @printf "%b%s%b %s\n" "$(COLOR_RED)" "[ERROR]" "$(COLOR_RESET)" "$(1)"
 
-# Build the binary using the install script
+ARGUMENTS := $(MAKECMDGOALS)
+INSTALL_SCRIPT = $(ROOT_DIR)support/main.sh
+CMD_STR := $(strip $(firstword $(ARGUMENTS)))
+ARGS := $(filter-out $(strip $(CMD_STR)), $(ARGUMENTS))
+
+# Default target: help
+.DEFAULT_GOAL := help
+
+# Build the binary using the install script.
 build:
-	@if [ -f $(BINARY_NAME) ]; then rm $(BINARY_NAME); fi
-	$(call log, Building $(BINARY_NAME) )
-	$(call break, b )
-	@go build -ldflags "-s -w -X main.version=$(git describe --tags) -X main.commit=$(git rev-parse HEAD) -X main.date=$(date +%Y-%m-%d)" -trimpath -o $(BINARY_NAME) ${CMD_DIR} || exit 1
-	$(call break, b )
-	$(call success, Build process completed successfully)
-	$(call break, b )
-	$(call log, Compressing $(BINARY_NAME)... This may take a while)
-	$(call break, b )
-	@upx $(BINARY_NAME) --force-overwrite --lzma --no-progress --no-color -qqq || exit 1
-	$(call break, b )
-	$(call success, Compressed $(BINARY_NAME) )
+	@bash $(INSTALL_SCRIPT) build $(ARGS)
+	$(shell exit 0)
 
-# Build the binary using the install script
 build-dev:
-	@if [ -f $(BINARY_NAME) ]; then rm $(BINARY_NAME); fi
-	$(call log, Building $(BINARY_NAME) )
-	$(call break, b )
-	@go build -ldflags "-s -w -X main.version=$(git describe --tags) -X main.commit=$(git rev-parse HEAD) -X main.date=$(date +%Y-%m-%d)" -trimpath -o $(BINARY_NAME) ${CMD_DIR} || exit 1
-	$(call break, b )
-	$(call success, Built $(BINARY_NAME) )
+	@bash $(INSTALL_SCRIPT) build-dev $(ARGS)
+	$(shell exit 0)
 
-# Install the binary and configure environment
-install:
-	$(call log, Installing $(BINARY_NAME) )
-	$(call break, b )
-	@sh $(INSTALL_SCRIPT) install $(ARGS) || exit 1
-	$(call break, b )
-	$(call success, Installation completed )
-
-# Clean up build artifacts
+# Clean up build artifacts.
 clean:
-	$(call log, Cleaning up build artifacts)
-	$(call break, b )
-	@if [ -f $(BINARY_NAME) ]; then rm $(BINARY_NAME); fi
-	$(call break, b )
-	$(call success, Cleaned up build artifacts)
+	@bash $(INSTALL_SCRIPT) clean $(ARGS)
+	$(shell exit 0)
 
-# Run tests
+# Run tests.
 test:
-	$(call log, Running tests)
-	$(call break, b )
-	@go test ./... -v || exit 1
-	$(call break, b )
-	$(call success, Tests completed successfully)
+	@bash $(INSTALL_SCRIPT) test $(ARGS)
+	$(shell exit 0)
 
-# Run unit tests
-unit-test:
-	$(call log, Running unit tests)
-	$(call break, b )
-	@go test ./cmd/cli/server_test.go -v || exit 1
-	$(call break, b )
-	$(call success, Unit tests completed successfully)
+# Platform-specific targets (prevent wildcard capture)
+linux:
+	@echo "Process finished for platform: linux"
 
-# Run integration tests
-integration-test:
-	$(call log, Running integration tests)
-	$(call break, b )
-	@go test ./cmd/cli/integration_test.go -v || exit 1
-	$(call break, b )
-	$(call success, Integration tests completed successfully)
+amd64:
+	@echo "Process finished for architecture: amd64"
 
-# Display this help message
+windows:
+	@echo "Process finished for platform: windows"
+
+darwin:
+	@echo "Process finished for platform: darwin"
+
+arm64:
+	@echo "Process finished for architecture: arm64"
+
+armv6l:
+	@echo "Process finished for architecture: armv6l"
+
+386:
+	@echo "Process finished for architecture: 386"
+
+all:
+	@echo "Process finished for all platforms and architectures"
+
+build-docs:
+	@echo "Building documentation..."
+	@bash $(INSTALL_SCRIPT) build-docs $(ARGS)
+	$(shell exit 0)
+
+serve-docs:
+	@echo "Starting documentation server..."
+	@bash $(INSTALL_SCRIPT) serve-docs $(ARGS)
+
+pub-docs:
+	@echo "Publishing documentation..."
+	@bash $(INSTALL_SCRIPT) pub-docs $(ARGS)
+	$(shell exit 0)
+
+## Run dynamic commands with arguments calling the install script.
+%:
+	@:
+	$(call log_info, Running command: $(CMD_STR))
+	$(call log_info, Args: $(ARGS))
+	@bash $(INSTALL_SCRIPT) $(CMD_STR) $(ARGS)
+	$(shell exit 0)
+
+# Display help message
 help:
-	$(call log, $(APP_NAME) Makefile )
-	$(call break, b )
-	$(call log, Usage: )
-	$(call log,   make [target] [ARGS='--custom-arg value'] )
-	$(call break, b )
-	$(call log, Available targets: )
+	$(call log, $(APP_NAME) Build System Help)
+	$(call log_break)
+	$(call log, Available targets:)
 	$(call log,   make build      - Build the binary using install script)
-	$(call log,   make build-dev  - Build the binary without compressing it)
 	$(call log,   make install    - Install the binary and configure environment)
+	$(call log,   make docs       - Start API documentation server)
+	$(call log,   make build-docs - Build documentation server binary)
 	$(call log,   make clean      - Clean up build artifacts)
 	$(call log,   make test       - Run tests)
-	$(call log,   make unit-test  - Run unit tests)
-	$(call log,   make integration-test - Run integration tests)
 	$(call log,   make help       - Display this help message)
-	$(call break, b )
-	$(call log, Usage with arguments: )
+	$(call log_break)
+	$(call log, Documentation:)
+	$(call log,   make docs       - Starts beautiful API documentation at http://localhost:8080/docs)
+	$(call log,   ./start-docs.sh - Alternative way to start documentation server)
+	$(call log_break)
+	$(call log, Usage with arguments:)
 	$(call log,   make install ARGS='--custom-arg value' - Pass custom arguments to the install script)
-	$(call break, b )
-	$(call log, Example: )
+	$(call log_break)
+	$(call log, Example:)
 	$(call log,   make install ARGS='--prefix /usr/local')
-	$(call break, b )
-	$(call log, $(APP_NAME) is a tool for managing Kubernetes resources)
-	$(call break, b )
-	$(call log, For more information, visit: )
-	$(call log, 'https://github.com/faelmori/getl' )
-	$(call break, b )
-	$(call success, End of help message)
+	$(call log_break)
+	$(call log, Description:)
+	$(call log,   $(DESCRIPTION))
+	$(call log_break)
+	$(call log, For more information, visit:)
+	$(call log,  $(REPOSITORY))
+	$(call log_break)
+	$(call log_success, End of help message)
+	$(shell exit 0)

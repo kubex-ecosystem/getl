@@ -34,10 +34,9 @@
 //
 //
 //   You can read more about the configuration file in the documentation:
-//   https://github.com/faelmori/getl/README.md#configuration-file
+//   https://github.com/kubex-ecosystem/getl/README.md#configuration-file
 //
 //   Here goes the example of the configuration file that you can use like a reference to create your own firsts configuration files.
-
 [
   { // One way to use the OPT_METHODS_EXAMPLE.json file
     "sourceType": "godror",
@@ -55,7 +54,6 @@
     "kafkaTopic": "",
     "kafkaGroupID": ""
   },
-
   { // Another way to use the OPT_METHODS_EXAMPLE.json file with interval for continuous sync process
     "sourceType": "godror",
     "sourceConnectionString": "username/password@127.0.0.1:1521/orcl",
@@ -69,7 +67,6 @@
     "kafkaTopic": "",
     "kafkaGroupID": ""
   },
-
   { // Another way to use the OPT_METHODS_EXAMPLE.json file
     "sourceType": "sqlite3",
     "sourceConnectionString": "/home/user/.kubex/web/gorm.db",

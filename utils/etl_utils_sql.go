@@ -6,21 +6,23 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+
 	"github.com/elgris/sqrl"
-	. "github.com/faelmori/getl/etypes"
-	//"github.com/faelmori/kbx/mods/utils"
-	"github.com/faelmori/gkbxsrv/utils"
-	"github.com/faelmori/logz"
+	. "github.com/kubex-ecosystem/getl/etypes"
+
+	//"github.com/kubex-ecosystem/kbx/mods/utils"
 	"maps"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strconv"
 	"strings"
+
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 func ApplyTransformations(data []Data, transformations []Transformation) ([]Data, error) {
-	if transformations == nil {
+	if len(transformations) == 0 {
 		return data, nil
 	}
 
@@ -33,31 +35,26 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 				return nil, fmt.Errorf("campo fonte não encontrado: %s", t.SourceField)
 			}
 
-			switch t.Operation {
+			destinationField := t.DestinationField
+			if destinationField == "" {
+				destinationField = t.SourceField
+			}
+
+			switch strings.ToLower(strings.TrimSpace(t.Operation)) {
 			case "copy", "none":
-				transformedRow[t.DestinationField] = value
+				transformedRow[destinationField] = value
 			case "uppercase":
-				if strValue, ok := value.(string); ok {
-					transformedRow[t.DestinationField] = strings.ToUpper(strValue)
-				} else {
-					return nil, fmt.Errorf("valor não é uma string: %v", value)
-				}
+				transformedRow[destinationField] = strings.ToUpper(asString(value))
 			case "base64":
-				if strValue, ok := value.(string); ok {
-					transformedRow[t.DestinationField] = base64.StdEncoding.EncodeToString([]byte(strValue))
-				} else {
-					return nil, fmt.Errorf("valor não é uma string: %v", value)
+				transformedRow[destinationField] = base64.StdEncoding.EncodeToString([]byte(asString(value)))
+			case "toint":
+				intValue, err := strconv.Atoi(asString(value))
+				if err != nil {
+					return nil, fmt.Errorf("falha ao converter para inteiro: %v", err)
 				}
-			case "toInt":
-				if strValue, ok := value.(string); ok {
-					intValue, err := strconv.Atoi(strValue)
-					if err != nil {
-						return nil, fmt.Errorf("falha ao converter para inteiro: %w", err)
-					}
-					transformedRow[t.DestinationField] = intValue
-				} else {
-					return nil, fmt.Errorf("valor não é uma string: %v", value)
-				}
+				transformedRow[destinationField] = intValue
+			case "":
+				transformedRow[destinationField] = value
 			default:
 				return nil, fmt.Errorf("operação desconhecida: %s", t.Operation)
 			}
@@ -67,26 +64,39 @@ func ApplyTransformations(data []Data, transformations []Transformation) ([]Data
 
 	return transformedData, nil
 }
+
+func asString(value interface{}) string {
+	switch v := value.(type) {
+	case nil:
+		return ""
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	default:
+		return gl.Sprintf("%v", value)
+	}
+}
 func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 	var config Config
 
-	logz.Info("Loading fields from file: "+fileConfigPath, map[string]interface{}{})
+	gl.Log("info", "Loading fields from file: "+fileConfigPath)
 	fileData, fileDataErr := os.ReadFile(fileConfigPath)
 	if fileDataErr != nil {
-		logz.Error("failed to load file: "+fileDataErr.Error(), map[string]interface{}{})
+		gl.Log("error", "failed to load file: "+fileDataErr.Error())
 		return nil, fileDataErr
 	}
-	logz.Info("File loaded successfully", map[string]interface{}{})
+	gl.Log("info", "File loaded successfully")
 
-	logz.Info("Unmarshalling file data", map[string]interface{}{})
+	gl.Log("info", "Unmarshalling file data")
 	unmarshalErr := json.Unmarshal(fileData, &config)
 	if unmarshalErr != nil {
-		logz.Error("334: "+unmarshalErr.Error(), map[string]interface{}{})
+		gl.Log("error", "334: "+unmarshalErr.Error())
 		return nil, unmarshalErr
 	}
-	logz.Info("File data unmarshalled successfully", map[string]interface{}{})
+	gl.Log("info", "File data unmarshalled successfully")
 
-	logz.Info("Creating fields map", map[string]interface{}{})
+	gl.Log("info", "Creating fields map")
 	var fields Fields
 
 	for _, t := range config.Transformations {
@@ -107,7 +117,7 @@ func LoadFieldsFromTransformConfig(fileConfigPath string) (Fields, error) {
 		fields[t.DPath] = append(fields[t.DPath], Field{"name": t.DestinationField})
 	}
 
-	logz.Info("Fields map created successfully: "+config.SourceType+" -> "+config.DestinationType, map[string]interface{}{})
+	gl.Log("info", "Fields map created successfully: "+config.SourceType+" -> "+config.DestinationType)
 	if maps.Values(fields) == nil {
 		return nil, errors.New("failed to create sourceFields map: " + config.SourceType)
 	}
@@ -143,13 +153,21 @@ func BuilExtractdQuery(config Config, fields []string) (string, []interface{}, e
 func LoadConfigFile(fileConfigPath string) (Config, error) {
 	fileData, err := os.ReadFile(fileConfigPath)
 	if err != nil {
-		return Config{}, fmt.Errorf("falha ao ler o arquivo de configuração: %w", err)
+		return Config{}, fmt.Errorf("falha ao ler o arquivo de configuração: %v", err)
 	}
 
 	var config Config
 	if unmarshalErr := json.Unmarshal(fileData, &config); unmarshalErr != nil {
-		return Config{}, fmt.Errorf("falha ao processar JSON de configuração: %w", unmarshalErr)
+		return Config{}, fmt.Errorf("falha ao processar JSON de configuração: %v", unmarshalErr)
 	}
+
+	config.SourceConnectionString = os.ExpandEnv(config.SourceConnectionString)
+	config.DestinationConnectionString = os.ExpandEnv(config.DestinationConnectionString)
+	config.OutputPath = os.ExpandEnv(config.OutputPath)
+	config.SourceTable = os.ExpandEnv(config.SourceTable)
+	config.DestinationTable = os.ExpandEnv(config.DestinationTable)
+	config.SQLQuery = os.ExpandEnv(config.SQLQuery)
+	config.IncrementalSync.StateFile = os.ExpandEnv(config.IncrementalSync.StateFile)
 
 	// Verificação de campos obrigatórios
 	requiredFields := []string{"sourceType", "sourceConnectionString", "destinationType", "destinationConnectionString"}
@@ -164,19 +182,19 @@ func LoadConfigFile(fileConfigPath string) (Config, error) {
 func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery string) (*TableHandler, error) {
 	db, err := sql.Open(sourceType, sourceConnectionString)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao conectar ao banco de dados de origem: %w", err)
+		return nil, fmt.Errorf("falha ao conectar ao banco de dados de origem: %v", err)
 	}
 	defer db.Close()
 
 	rows, err := db.Query(sqlQuery)
 	if err != nil {
-		return nil, fmt.Errorf("falha ao executar a consulta SQL: %w", err)
+		return nil, fmt.Errorf("falha ao executar a consulta SQL: %v", err)
 	}
 	defer rows.Close()
 
 	columns, err := rows.Columns()
 	if err != nil {
-		return nil, fmt.Errorf("falha ao obter colunas: %w", err)
+		return nil, fmt.Errorf("falha ao obter colunas: %v", err)
 	}
 
 	var data [][]string
@@ -188,12 +206,12 @@ func GetDataTableHandlerFromQuery(sourceType, sourceConnectionString, sqlQuery s
 		}
 
 		if err := rows.Scan(valuePtrs...); err != nil {
-			return nil, fmt.Errorf("falha ao escanear linha: %w", err)
+			return nil, fmt.Errorf("falha ao escanear linha: %v", err)
 		}
 
 		var row []string
 		for _, value := range values {
-			row = append(row, fmt.Sprintf("%v", value))
+			row = append(row, gl.Sprintf("%v", value))
 		}
 		data = append(data, row)
 	}
@@ -239,38 +257,38 @@ func GenerateConfigTemplate(filePath string) error {
 	}
 
 	if filePath == "" {
-		homeFilePath, filePathErr := utils.GetWorkDir()
+		homeFilePath, filePathErr := GetWorkDir()
 		if filePathErr != nil {
-			return fmt.Errorf("falha ao obter o diretório HOME: %w", filePathErr)
+			return fmt.Errorf("falha ao obter o diretório HOME: %v", filePathErr)
 		}
 		filePath = homeFilePath + "/.kubex/example_config.json"
 	}
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("falha ao criar o arquivo: %w", err)
+		return fmt.Errorf("falha ao criar o arquivo: %v", err)
 	}
 	defer file.Close()
 
 	encoder := json.NewEncoder(file)
 	encoder.SetIndent("", "  ")
 	if err := encoder.Encode(config); err != nil {
-		return fmt.Errorf("falha ao codificar o JSON: %w", err)
+		return fmt.Errorf("falha ao codificar o JSON: %v", err)
 	}
 
 	return nil
 }
 func GetETLJobs() (JobList, error) {
-	cwd, cwdErr := utils.GetWorkDir()
+	cwd, cwdErr := GetWorkDir()
 	if cwdErr != nil {
-		logz.Error("failed to get current working directory: "+cwdErr.Error(), map[string]interface{}{})
+		gl.Log("error", "failed to get current working directory: "+cwdErr.Error())
 		return nil, cwdErr
 	}
 	jobsCwd := filepath.Join(cwd, "jobs")
 
 	files, filesErr := os.ReadDir(jobsCwd)
 	if filesErr != nil {
-		logz.Error("failed to read jobs directory: "+filesErr.Error(), map[string]interface{}{})
+		gl.Log("error", "failed to read jobs directory: "+filesErr.Error())
 		return nil, filesErr
 	}
 
@@ -283,7 +301,7 @@ func GetETLJobs() (JobList, error) {
 		filePath := filepath.Join(jobsCwd, file.Name())
 		job, jobErr := LoadJobFromFile(filePath)
 		if jobErr != nil {
-			logz.Error("failed to load job from file: "+jobErr.Error(), map[string]interface{}{})
+			gl.Log("error", "failed to load job from file: "+jobErr.Error())
 			return nil, jobErr
 		}
 
@@ -297,13 +315,13 @@ func GetETLJobs() (JobList, error) {
 func LoadJobFromFile(filePath string) (*VJob, error) {
 	fileData, fileDataErr := os.ReadFile(filePath)
 	if fileDataErr != nil {
-		logz.Error("failed to load file: "+fileDataErr.Error(), map[string]interface{}{})
+		gl.Log("error", "failed to load file: "+fileDataErr.Error())
 		return nil, fileDataErr
 	}
 
 	var job VJob
 	if unmarshalErr := json.Unmarshal(fileData, &job); unmarshalErr != nil {
-		logz.Error("failed to unmarshal file data: "+unmarshalErr.Error(), map[string]interface{}{})
+		gl.Log("error", "failed to unmarshal file data: "+unmarshalErr.Error())
 		return nil, unmarshalErr
 	}
 

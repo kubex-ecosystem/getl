@@ -2,10 +2,11 @@ package extr
 
 import (
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	"github.com/faelmori/logz"
-	"gopkg.in/yaml.v2"
 	"os"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+	gl "github.com/kubex-ecosystem/logz"
+	"gopkg.in/yaml.v2"
 )
 
 type YAMLDataTable struct {
@@ -24,14 +25,14 @@ func NewYAMLDataTable(data []Data, filePath string) *YAMLDataTable {
 func (e *YAMLDataTable) LoadFile() error {
 	file, err := os.Open(e.filePath)
 	if err != nil {
-		logz.Error("Failed to open file: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to open file: "+err.Error())
 		return err
 	}
 	defer file.Close()
 
 	decoder := yaml.NewDecoder(file)
 	if err := decoder.Decode(&e.data); err != nil {
-		logz.Error("Failed to decode YAML: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to decode YAML: "+err.Error())
 		return err
 	}
 
@@ -45,7 +46,7 @@ func (e *YAMLDataTable) LoadData(data []Data) {
 func (e *YAMLDataTable) ExtractFile() error {
 	file, err := os.Create(e.filePath)
 	if err != nil {
-		logz.Error("Failed to create file: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to create file: "+err.Error())
 		return err
 	}
 	defer file.Close()
@@ -54,7 +55,7 @@ func (e *YAMLDataTable) ExtractFile() error {
 	defer encoder.Close()
 
 	if err := encoder.Encode(e.data); err != nil {
-		logz.Error("Failed to encode YAML: "+err.Error(), map[string]interface{}{})
+		gl.Log("error", "Failed to encode YAML: "+err.Error())
 		return err
 	}
 
@@ -63,7 +64,7 @@ func (e *YAMLDataTable) ExtractFile() error {
 
 func (e *YAMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("no data to extract")
 	}
 
@@ -80,7 +81,7 @@ func (e *YAMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 	}
 
 	if len(e.filteredData) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("no data to extract")
 	}
 
@@ -89,12 +90,12 @@ func (e *YAMLDataTable) ExtractData(filter map[string]string) ([]Data, error) {
 
 func (e *YAMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if index < 0 || index >= len(e.data) {
-		logz.Error("Invalid index", map[string]interface{}{})
+		gl.Log("error", "Invalid index")
 		return nil, fmt.Errorf("invalid index")
 	}
 
@@ -103,12 +104,12 @@ func (e *YAMLDataTable) ExtractDataByIndex(index int) (Data, error) {
 
 func (e *YAMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("no data to extract")
 	}
 
 	if start < 0 || end < 0 || start >= len(e.data) || end >= len(e.data) {
-		logz.Error("Invalid range", map[string]interface{}{})
+		gl.Log("error", "Invalid range")
 		return nil, fmt.Errorf("invalid range")
 	}
 
@@ -117,7 +118,7 @@ func (e *YAMLDataTable) ExtractDataByRange(start, end int) ([]Data, error) {
 
 func (e *YAMLDataTable) ExtractDataByField(field, value string) ([]Data, error) {
 	if len(e.data) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("no data to extract")
 	}
 
@@ -129,7 +130,7 @@ func (e *YAMLDataTable) ExtractDataByField(field, value string) ([]Data, error) 
 	}
 
 	if len(filteredData) == 0 {
-		logz.Error("No data to extract", map[string]interface{}{})
+		gl.Log("error", "No data to extract")
 		return nil, fmt.Errorf("no data to extract")
 	}
 

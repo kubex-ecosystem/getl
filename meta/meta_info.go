@@ -1,12 +1,14 @@
 package meta
 
 import (
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
-	. "github.com/faelmori/getl/etypes"
-	//"github.com/faelmori/kbx/mods/utils"
-	"github.com/faelmori/gkbxsrv/utils"
+
+	. "github.com/kubex-ecosystem/getl/etypes"
+
+	gl "github.com/kubex-ecosystem/logz"
 )
 
 func CreateInternalSchema(db *sql.DB) error {
@@ -17,7 +19,7 @@ func CreateInternalSchema(db *sql.DB) error {
 	)`
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
-		return fmt.Errorf("falha ao criar esquema interno: %w", err)
+		return fmt.Errorf("falha ao criar esquema interno: %v", err)
 	}
 	return nil
 }
@@ -29,17 +31,17 @@ func CheckAndUpdateHashes(db *sql.DB, tableName string) (bool, error) {
 		{"DESCRPROD": "Produto1", "RESERVADO": "10", "SALDO": "90", "PRECO": "10.00"},
 	}
 
-	hash := utils.NewHash()
+	hash := sha256.New()
 	for _, row := range data {
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
 	}
 	newHash := hash.Sum(nil)
 
 	var existingHash string
 	err := db.QueryRow("SELECT hash FROM etl_meta_info WHERE table_name = ?", tableName).Scan(&existingHash)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("falha ao obter hash existente: %w", err)
+		return false, fmt.Errorf("falha ao obter hash existente: %v", err)
 	}
 
 	if string(newHash) == existingHash {
@@ -52,7 +54,7 @@ func CheckAndUpdateHashes(db *sql.DB, tableName string) (bool, error) {
 		_, err = db.Exec("UPDATE etl_meta_info SET hash = ? WHERE table_name = ?", newHash, tableName)
 	}
 	if err != nil {
-		return false, fmt.Errorf("falha ao atualizar hash: %w", err)
+		return false, fmt.Errorf("falha ao atualizar hash: %v", err)
 	}
 
 	return true, nil // Dados alterados
@@ -67,7 +69,7 @@ func createInternalSchema(db *sql.DB) error {
 	)`
 	_, err := db.Exec(createTableQuery)
 	if err != nil {
-		return fmt.Errorf("falha ao criar esquema interno: %w", err)
+		return fmt.Errorf("falha ao criar esquema interno: %v", err)
 	}
 	return nil
 }
@@ -75,10 +77,10 @@ func createInternalSchema(db *sql.DB) error {
 // Função para verificar e atualizar hashes
 func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, error) {
 	// Gerar um hash incremental para o conjunto de dados
-	hash := utils.NewHash()
+	hash := sha256.New()
 	for _, row := range data {
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
-		hash.Write([]byte(fmt.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRGRUPOPROD"], row["ATIVO"], row["ESTOQUE"], row["CODPROD"])))
+		hash.Write([]byte(gl.Sprintf("%s%s%s%s", row["DESCRPROD"], row["RESERVADO"], row["SALDO"], row["PRECO"])))
 	}
 	newHash := hash.Sum(nil)
 
@@ -86,7 +88,7 @@ func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, erro
 	var existingHash string
 	err := db.QueryRow("SELECT hash FROM etl_meta_info WHERE table_name = ?", tableName).Scan(&existingHash)
 	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return false, fmt.Errorf("falha ao obter hash existente: %w", err)
+		return false, fmt.Errorf("falha ao obter hash existente: %v", err)
 	}
 
 	if string(newHash) == existingHash {
@@ -100,7 +102,7 @@ func checkAndUpdateHashes(db *sql.DB, tableName string, data []Data) (bool, erro
 		_, err = db.Exec("UPDATE etl_meta_info SET hash = ? WHERE table_name = ?", newHash, tableName)
 	}
 	if err != nil {
-		return false, fmt.Errorf("falha ao atualizar hash: %w", err)
+		return false, fmt.Errorf("falha ao atualizar hash: %v", err)
 	}
 
 	return true, nil // Dados alterados

@@ -1,16 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"github.com/faelmori/logz"
 	"os"
+
+	"github.com/kubex-ecosystem/getl/internal/module"
+	"github.com/kubex-ecosystem/logz"
 )
 
-var l = logz.GetLogger("Getl")
+var l = logz.GetLoggerZ("Getl")
 
 func main() {
-	if err := RegX().Execute(nil); err != nil {
-		l.Error(fmt.Sprintf("Error: %v", err), map[string]interface{}{})
+	if err := module.RegX().Command().Execute(); err != nil {
+		l.Errorf("Error: %v", err)
 		os.Exit(1)
 	}
 }
