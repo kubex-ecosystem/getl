@@ -9,7 +9,7 @@ require (
 	github.com/fatih/color v1.18.0
 	github.com/go-sql-driver/mysql v1.9.3
 	github.com/godror/godror v0.50.0
-	github.com/kubex-ecosystem/logz v1.6.8
+	github.com/kubex-ecosystem/logz v1.6.89
 	github.com/kubex-ecosystem/xtui v1.3.3
 	github.com/lib/pq v1.11.2
 	github.com/mattn/go-sqlite3 v1.14.34

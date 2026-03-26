@@ -1,39 +1,39 @@
+// Package sql provides SQL-related functions for the ETL process
 package sql
 
 import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"reflect"
+	"sort"
+	"strconv"
+	"strings"
+	"time"
+
 	"database/sql"
 	"encoding/json"
 	"encoding/xml"
 
 	"gopkg.in/yaml.v3"
 
-	"fmt"
-	"sort"
-
 	"github.com/charmbracelet/lipgloss"
-	. "github.com/kubex-ecosystem/getl/etypes"
+	"github.com/kubex-ecosystem/getl/etypes"
 	"github.com/kubex-ecosystem/getl/extr"
-	. "github.com/kubex-ecosystem/getl/utils"
-
-	//ui "github.com/kubex-ecosystem/kbx/mods/ui/components"
-	"os"
-	"path/filepath"
-	"reflect"
-	"strconv"
-	"strings"
-	"time"
+	"github.com/kubex-ecosystem/getl/utils"
 
 	gl "github.com/kubex-ecosystem/logz"
 	ui "github.com/kubex-ecosystem/xtui/components"
 
-	_ "github.com/denisenkom/go-mssqldb"
-	_ "github.com/godror/godror"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+	_ "github.com/denisenkom/go-mssqldb" // Microsoft SQL Server
+	_ "github.com/godror/godror"         // Oracle
+	_ "github.com/lib/pq"                // PostgreSQL
+	_ "github.com/mattn/go-sqlite3"      // SQLite
 )
 
+// ShowDataTableFromConfig shows the data table from the source
 func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath string, outputFormat string) error {
-	config, err := LoadConfigFile(fileConfigPath)
+	config, err := utils.LoadConfigFile(fileConfigPath)
 	if err != nil {
 		return fmt.Errorf("falha ao carregar configuração da fonte: %v", err)
 	}
@@ -43,13 +43,13 @@ func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath stri
 		sqlQuery = config.SQLQuery
 	} else {
 		fields := []string{"*"} // Ajuste conforme necessário
-		sqlQuery, _, err = BuilExtractdQuery(config, fields)
+		sqlQuery, _, err = utils.BuilExtractdQuery(config, fields)
 		if err != nil {
 			return fmt.Errorf("falha ao construir a consulta SQL: %v", err)
 		}
 	}
 
-	handler, err := GetDataTableHandlerFromQuery(config.SourceType, config.SourceConnectionString, sqlQuery)
+	handler, err := utils.GetDataTableHandlerFromQuery(config.SourceType, config.SourceConnectionString, sqlQuery)
 	if err != nil {
 		return err
 	}
@@ -59,9 +59,9 @@ func ShowDataTableFromConfig(fileConfigPath string, export bool, exportPath stri
 			return fmt.Errorf("caminho de exportação não fornecido")
 		}
 
-		var data []Data
+		var data []etypes.Data
 		for _, row := range handler.Data {
-			rowData := make(Data)
+			rowData := make(etypes.Data)
 			for i, value := range row {
 				rowData[handler.Columns[i]] = value
 			}
@@ -160,7 +160,7 @@ func promoteInferredType(current, candidate string) string {
 	return "TEXT"
 }
 
-func extractCSVDataWithTypes(config Config) ([]Data, map[string]string, error) {
+func extractCSVDataWithTypes(config etypes.Config) ([]etypes.Data, map[string]string, error) {
 	csvPath := strings.TrimSpace(config.SourceConnectionString)
 	if csvPath == "" {
 		return nil, nil, fmt.Errorf("sourceConnectionString deve apontar para o arquivo CSV")
@@ -194,7 +194,7 @@ func extractCSVDataWithTypes(config Config) ([]Data, map[string]string, error) {
 	return data, columnTypes, nil
 }
 
-func resolveDestinationFieldTypes(sourceTypes map[string]string, transformations []Transformation) (map[string]string, error) {
+func resolveDestinationFieldTypes(sourceTypes map[string]string, transformations []etypes.Transformation) (map[string]string, error) {
 	if len(transformations) == 0 {
 		fields := make(map[string]string, len(sourceTypes))
 		for field, fieldType := range sourceTypes {
@@ -271,7 +271,7 @@ func buildConflictClause(driver, updateKey string, columns []string) (string, er
 	}
 }
 
-func executeInsertBatch(tx *sql.Tx, config Config, data []Data) error {
+func executeInsertBatch(tx *sql.Tx, config etypes.Config, data []etypes.Data) error {
 	for _, row := range data {
 		columns := make([]string, 0, len(row))
 		for column := range row {
@@ -307,7 +307,8 @@ func executeInsertBatch(tx *sql.Tx, config Config, data []Data) error {
 	return nil
 }
 
-func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]string, error) {
+// ExtractDataWithTypes extracts data from the source with types
+func ExtractDataWithTypes(dbSQL *sql.DB, config etypes.Config) ([]etypes.Data, map[string]string, error) {
 	config.SourceType = normalizeDriverName(config.SourceType)
 	config.DestinationType = normalizeDriverName(config.DestinationType)
 
@@ -343,7 +344,7 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 
 	if config.SQLQuery == "" {
 		var fields []string
-		var transformationsList []Transformation
+		var transformationsList []etypes.Transformation
 		transformationsList = config.Transformations
 		for i, t := range transformationsList {
 			fields = append(fields, t.SourceField)
@@ -351,7 +352,7 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 				transformationsList[i].Type = "string"
 			}
 		}
-		config.SQLQuery, SQLQueryArgs, buildQueryErr = BuilExtractdQuery(config, fields)
+		config.SQLQuery, SQLQueryArgs, buildQueryErr = utils.BuilExtractdQuery(config, fields)
 		if buildQueryErr != nil {
 			gl.Log("error", "Failed to build query: "+buildQueryErr.Error())
 			return nil, nil, buildQueryErr
@@ -375,7 +376,7 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 		_ = rows.Close()
 	}(rows)
 
-	var data []Data
+	var data []etypes.Data
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
 		gl.Log("error", "Failed to get columns: "+columnsErr.Error())
@@ -434,7 +435,7 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 			return nil, nil, scanErr
 		}
 
-		row := make(Data)
+		row := make(etypes.Data)
 		for i, colName := range columns {
 			row[colName] = rowData[i]
 
@@ -458,7 +459,9 @@ func ExtractDataWithTypes(dbSQL *sql.DB, config Config) ([]Data, map[string]stri
 
 	return data, columnTypeMap, nil
 }
-func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]string) error {
+
+// EnsureTableExistsWithTypes ensures the table exists with the correct types
+func EnsureTableExistsWithTypes(db *sql.DB, config etypes.Config, fields map[string]string) error {
 	if config.DestinationTable == "" {
 		gl.Log("error", "nome da tabela não informado")
 		return fmt.Errorf("nome da tabela não informado")
@@ -468,7 +471,7 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 	var fieldsDest = make(map[string]string)
 	createTableQuery = gl.Sprintf("CREATE TABLE IF NOT EXISTS %s (", config.DestinationTable)
 	for fieldName, fieldType := range fields {
-		typeName := GetVendorSqlType(
+		typeName := etypes.GetVendorSqlType(
 			config.DestinationType,
 			fieldType,
 		)
@@ -495,7 +498,9 @@ func EnsureTableExistsWithTypes(db *sql.DB, config Config, fields map[string]str
 
 	return nil
 }
-func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
+
+// ExtractData extracts data from the source
+func ExtractData(dbSQL *sql.DB, config etypes.Config) ([]etypes.Data, []string, error) {
 	config.SourceType = normalizeDriverName(config.SourceType)
 	if config.SQLQuery == "" {
 		gl.Log("error", "query SQL não informada")
@@ -530,7 +535,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 		_ = rows.Close()
 	}(rows)
 
-	var data []Data
+	var data []etypes.Data
 	columns, columnsErr := rows.Columns()
 	if columnsErr != nil {
 		gl.Errorf("falha ao obter colunas: %v", columnsErr)
@@ -549,7 +554,7 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 			return nil, nil, scanErr
 		}
 
-		row := make(Data)
+		row := make(etypes.Data)
 		for i, colName := range columns {
 			row[colName] = rowData[i]
 		}
@@ -565,7 +570,9 @@ func ExtractData(dbSQL *sql.DB, config Config) ([]Data, []string, error) {
 
 	return data, columns, nil
 }
-func SaveData(filePath string, data []Data, outputFormat string) error {
+
+// SaveData saves data to a file
+func SaveData(filePath string, data []etypes.Data, outputFormat string) error {
 	if filePath == "" {
 		gl.Log("error", "caminho do arquivo não informado")
 		return fmt.Errorf("caminho do arquivo não informado")
@@ -605,18 +612,21 @@ type XMLData struct {
 	Records []XMLRecord `xml:"record"`
 }
 
+// XMLRecord represents a record in the XML file
 type XMLRecord struct {
 	XMLName xml.Name   `xml:"record"`
 	Fields  []XMLField `xml:"field"`
 }
 
+// XMLField represents a field in the XML file
 type XMLField struct {
 	XMLName xml.Name `xml:"field"`
 	Name    string   `xml:"name,attr"`
 	Value   string   `xml:",chardata"`
 }
 
-func SaveDataToXML(filePath string, data []Data) error {
+// SaveDataToXML saves data to an XML file
+func SaveDataToXML(filePath string, data []etypes.Data) error {
 	if filePath == "" {
 		gl.Log("error", "caminho do arquivo não informado")
 		return fmt.Errorf("caminho do arquivo não informado")
@@ -684,7 +694,9 @@ func SaveDataToXML(filePath string, data []Data) error {
 
 	return nil
 }
-func SaveDataToYAML(filePath string, data []Data) error {
+
+// SaveDataToYAML saves data to a YAML file
+func SaveDataToYAML(filePath string, data []etypes.Data) error {
 	if filePath == "" {
 		gl.Log("error", "caminho do arquivo não informado")
 		return fmt.Errorf("caminho do arquivo não informado")
@@ -724,7 +736,9 @@ func SaveDataToYAML(filePath string, data []Data) error {
 
 	return nil
 }
-func SaveDataToJSON(filePath string, data []Data) error {
+
+// SaveDataToJSON saves data to a JSON file
+func SaveDataToJSON(filePath string, data []etypes.Data) error {
 	if filePath == "" {
 		gl.Log("error", "caminho do arquivo não informado")
 		return fmt.Errorf("caminho do arquivo não informado")
@@ -764,7 +778,9 @@ func SaveDataToJSON(filePath string, data []Data) error {
 
 	return nil
 }
-func LoadData(dbSQL *sql.DB, config Config) error {
+
+// LoadData loads data from a file to the destination database
+func LoadData(dbSQL *sql.DB, config etypes.Config) error {
 	config.SourceType = normalizeDriverName(config.SourceType)
 	config.DestinationType = normalizeDriverName(config.DestinationType)
 
@@ -788,7 +804,7 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 		}(db)
 	}
 
-	var data []Data
+	var data []etypes.Data
 	var fieldsErr error
 
 	data, sourceFieldTypes, fieldsErr := ExtractDataWithTypes(nil, config)
@@ -797,7 +813,7 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 		return fieldsErr
 	}
 
-	transformedData, transformedDataErr := ApplyTransformations(data, config.Transformations)
+	transformedData, transformedDataErr := utils.ApplyTransformations(data, config.Transformations)
 	if transformedDataErr != nil {
 		gl.Log("error", "Failed to apply transformations: "+transformedDataErr.Error())
 		return transformedDataErr
@@ -841,11 +857,13 @@ func LoadData(dbSQL *sql.DB, config Config) error {
 
 	return nil
 }
+
+// ExecuteETL executes the ETL process
 func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, checkMethod string) error {
 	gl.Log("info", "Iniciando o processo de GETl")
 
 	// Carregar a configuração
-	config, loadConfigErr := LoadConfigFile(configPath)
+	config, loadConfigErr := utils.LoadConfigFile(configPath)
 	if loadConfigErr != nil {
 		gl.Errorf("falha ao carregar a configuração: %v", loadConfigErr)
 		return loadConfigErr
@@ -887,7 +905,7 @@ func ExecuteETL(configPath, outputPath, outputFormat string, needCheck bool, che
 }
 
 // ExecuteIncrementalETL performs incremental ETL using smart strategies
-func ExecuteIncrementalETL(config Config) error {
+func ExecuteIncrementalETL(config etypes.Config) error {
 	gl.Log("info", "Iniciando processo de GETl incremental")
 
 	// Set default state file if not provided
@@ -898,9 +916,9 @@ func ExecuteIncrementalETL(config Config) error {
 
 	// Execute based on strategy
 	switch config.IncrementalSync.Strategy {
-	case TimestampBased:
+	case etypes.TimestampBased:
 		return executeTimestampIncrementalETL(config)
-	case PrimaryKeyBased:
+	case etypes.PrimaryKeyBased:
 		return executePrimaryKeyIncrementalETL(config)
 	default:
 		gl.Log("info", "Unknown incremental strategy, falling back to full sync")
@@ -909,7 +927,7 @@ func ExecuteIncrementalETL(config Config) error {
 }
 
 // executeTimestampIncrementalETL performs timestamp-based incremental sync
-func executeTimestampIncrementalETL(config Config) error {
+func executeTimestampIncrementalETL(config etypes.Config) error {
 	gl.Infof("Executing timestamp-based incremental sync on field: %s", config.IncrementalSync.TimestampField)
 
 	// Load last sync state
@@ -965,7 +983,7 @@ func executeTimestampIncrementalETL(config Config) error {
 }
 
 // executePrimaryKeyIncrementalETL performs primary key-based incremental sync
-func executePrimaryKeyIncrementalETL(config Config) error {
+func executePrimaryKeyIncrementalETL(config etypes.Config) error {
 	gl.Infof("Executing primary key-based incremental sync on field: %s", config.PrimaryKey)
 
 	// Load last sync state
@@ -1034,7 +1052,7 @@ func loadLastSyncValue(stateFile string) (interface{}, error) {
 		return nil, err
 	}
 
-	var state SyncState
+	var state etypes.SyncState
 	if err := json.Unmarshal(data, &state); err != nil {
 		return nil, err
 	}
@@ -1049,7 +1067,7 @@ func saveLastSyncValue(stateFile string, value interface{}) error {
 		return err
 	}
 
-	state := SyncState{
+	state := etypes.SyncState{
 		LastSyncValue: value,
 		LastSyncTime:  time.Now().Format(time.RFC3339),
 	}
@@ -1062,6 +1080,7 @@ func saveLastSyncValue(stateFile string, value interface{}) error {
 	return os.WriteFile(stateFile, data, 0644)
 }
 
+// VacuumDatabase performs vacuum on the database
 func VacuumDatabase(dbPath string) error {
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -1079,10 +1098,12 @@ func VacuumDatabase(dbPath string) error {
 	gl.Log("info", "VACUUM executado com sucesso")
 	return nil
 }
+
+// ExecuteETLJobs executes all ETL jobs
 func ExecuteETLJobs() error {
 	gl.Log("info", "Iniciando os trabalhos de GETl")
 
-	jobsObj, jobsListErr := GetETLJobs()
+	jobsObj, jobsListErr := utils.GetETLJobs()
 	if jobsListErr != nil {
 		gl.Errorf("falha ao buscar os trabalhos de GETl: %v", jobsListErr)
 		return jobsListErr
@@ -1101,6 +1122,8 @@ func ExecuteETLJobs() error {
 
 	return nil
 }
+
+// formatValue formats a value for SQL
 func formatValue(val interface{}) string {
 	if val == nil {
 		return "NULL"
