@@ -1,20 +1,21 @@
-# 🚀 Incremental Sync - The Magic Feature
+# Incremental Sync
 
-**Getl's Incremental Sync** é a feature que transforma o Getl de uma ferramenta ETL comum em uma **MÁQUINA DE SYNC INTELIGENTE**!
+**Getl's Incremental Sync** é a feature que transforma o Getl de uma ferramenta ETL comum em uma **SYNC ENGINE INTELIGENTE**!
 
-## 🎯 O Que É?
+## O Que É?
 
 Sync Incremental significa que o Getl **só processa dados novos ou modificados**, não os dados já sincronizados. Isso resulta em:
 
 - ⚡ **Performance 10x-100x melhor** em grandes datasets
 - 💰 **Economia massiva de recursos** (CPU, memória, rede)
 - 🔄 **Sync contínuo eficiente** entre sistemas
-- 🎯 **Zero duplicação** de dados já processados
+- **Zero duplicação** de dados já processados
 
 ## 🔥 Estratégias Disponíveis
 
 ### 1. **Timestamp-Based Sync**
-**Para tabelas com campos de data/hora**
+
+***Para tabelas com campos de data/hora***
 
 ```json
 {
@@ -35,11 +36,13 @@ Sync Incremental significa que o Getl **só processa dados novos ou modificados*
 ```
 
 **Como funciona:**
-- 🚀 **Primeira execução**: Processa TODOS os registros
-- 🎯 **Execuções seguintes**: Apenas registros onde `updated_at > último_sync`
-- 💾 **Estado salvo**: Timestamp da última execução
+
+- **Primeira execução**: Processa TODOS os registros
+- **Execuções seguintes**: Apenas registros onde `updated_at > último_sync`
+- **Estado salvo**: Timestamp da última execução
 
 **Query gerada automaticamente:**
+
 ```sql
 -- Primeira vez
 SELECT * FROM orders ORDER BY updated_at
@@ -49,7 +52,8 @@ SELECT * FROM orders WHERE updated_at > '2025-09-23 14:56:24' ORDER BY updated_a
 ```
 
 ### 2. **Primary Key-Based Sync**
-**Para tabelas append-only (só inserem dados)**
+
+***Para tabelas append-only (só inserem dados)***
 
 ```json
 {
@@ -70,11 +74,13 @@ SELECT * FROM orders WHERE updated_at > '2025-09-23 14:56:24' ORDER BY updated_a
 ```
 
 **Como funciona:**
-- 🚀 **Primeira execução**: Processa TODOS os registros
-- 🎯 **Execuções seguintes**: Apenas registros onde `product_id > último_id_processado`
-- 💾 **Estado salvo**: Maior ID processado
+
+- **Primeira execução**: Processa TODOS os registros
+- **Execuções seguintes**: Apenas registros onde `product_id > último_id_processado`
+- **Estado salvo**: Maior ID processado
 
 **Query gerada automaticamente:**
+
 ```sql
 -- Primeira vez
 SELECT * FROM products ORDER BY product_id
@@ -84,7 +90,8 @@ SELECT * FROM products WHERE product_id > 1250 ORDER BY product_id
 ```
 
 ### 3. **Hash-Based Sync** (Em desenvolvimento)
-**Para detectar qualquer mudança em qualquer coluna**
+
+***Para detectar qualquer mudança em qualquer coluna***
 
 ```json
 {
@@ -97,7 +104,8 @@ SELECT * FROM products WHERE product_id > 1250 ORDER BY product_id
 ```
 
 ### 4. **Full Sync** (Padrão)
-**Sincronização completa tradicional**
+
+***Sincronização completa tradicional***
 
 ```json
 {
@@ -110,7 +118,7 @@ SELECT * FROM products WHERE product_id > 1250 ORDER BY product_id
 ## 📊 Comparação de Performance
 
 | Dataset | Full Sync | Incremental Sync | Speedup |
-|---------|-----------|------------------|---------|
+| --------- | ----------- | ------------------ | --------- |
 | 10K records | 2s | 0.1s | **20x** |
 | 100K records | 30s | 0.5s | **60x** |
 | 1M records | 5min | 2s | **150x** |
@@ -173,53 +181,60 @@ O estado é automaticamente salvo em JSON:
 }
 ```
 
-## 🎯 Casos de Uso Reais
+## Casos de Uso Reais
 
 ### E-commerce: Sync de Pedidos
+
 ```bash
 # Sincronizar apenas pedidos criados nas últimas horas
 ./getl sync -f configs/orders-incremental.json
 ```
 
 ### CRM: Sync de Leads
+
 ```bash
 # Sincronizar apenas leads novos por ID
 ./getl sync -f configs/leads-incremental.json
 ```
 
 ### Analytics: Sync de Eventos
+
 ```bash
 # Sincronizar eventos por timestamp
 ./getl sync -f configs/events-incremental.json
 ```
 
 ### Data Warehouse: Sync de Dimensões
+
 ```bash
 # Sincronizar mudanças em dimensões
 ./getl sync -f configs/dimensions-incremental.json
 ```
 
-## 🚀 Execução
+## Execução
 
 ### Primeira Execução (Full Sync)
+
 ```bash
 ./getl sync -f config-incremental.json
 # ✅ Processa TODOS os 1 milhão de registros
 # ⏱️ Tempo: 5 minutos
-# 💾 Estado salvo: último_id = 1000000
+# Estado salvo: último_id = 1000000
 ```
 
 ### Segunda Execução (Incremental)
+
 ```bash
 ./getl sync -f config-incremental.json
 # ✅ Processa apenas 50 registros novos
 # ⏱️ Tempo: 2 segundos
-# 💾 Estado atualizado: último_id = 1000050
+# Estado atualizado: último_id = 1000050
 ```
 
 ## 💡 Dicas de Performance
 
 ### 1. **Índices no Campo de Sync**
+
 ```sql
 -- Para timestamp-based
 CREATE INDEX idx_orders_updated_at ON orders(updated_at);
@@ -229,6 +244,7 @@ CREATE INDEX idx_products_id ON products(product_id);
 ```
 
 ### 2. **Batch Size Otimizado**
+
 ```json
 {
   "incrementalSync": {
@@ -238,6 +254,7 @@ CREATE INDEX idx_products_id ON products(product_id);
 ```
 
 ### 3. **State File em SSD**
+
 ```json
 {
   "incrementalSync": {
@@ -249,33 +266,39 @@ CREATE INDEX idx_products_id ON products(product_id);
 ## 🔧 Troubleshooting
 
 ### Problema: "no such column"
+
 **Causa**: Campo de timestamp não existe na query UNION
 **Solução**: Use tabelas reais em vez de queries UNION com WHERE
 
 ### Problema: Estado perdido
+
 **Causa**: Arquivo de estado foi deletado
 **Solução**: Próxima execução será full sync (automático)
 
 ### Problema: Performance lenta
+
 **Causa**: Falta de índice no campo de sync
 **Solução**: Criar índice no campo usado para sync
 
 ## 🎉 Vantagens Competitivas
 
-### vs. Ferramentas Tradicionais:
+### vs. Ferramentas Tradicionais
+
 - **Fivetran**: $$$$ caro, Getl é open source
 - **Stitch**: Limitado, Getl é flexível
 - **Airbyte**: Complexo, Getl é simples
 - **Custom Scripts**: Buggy, Getl é robusto
 
-### vs. Sync Manual:
+### vs. Sync Manual
+
 - **Manual**: Propenso a erros, Getl é confiável
 - **Manual**: Código complexo, Getl é configuração
 - **Manual**: Sem monitoramento, Getl tem logs
 
-## 🚀 Roadmap
+## Roadmap
 
-### Em Desenvolvimento:
+### Em Desenvolvimento
+
 - [ ] Hash-based sync completo
 - [ ] Sync bidirecional
 - [ ] Conflict resolution
@@ -283,7 +306,8 @@ CREATE INDEX idx_products_id ON products(product_id);
 - [ ] Compressão de estado
 - [ ] Metrics/dashboards
 
-### Futuro:
+### Futuro
+
 - [ ] Auto-discovery de campos timestamp
 - [ ] ML para otimização automática
 - [ ] Sync baseado em CDC (Change Data Capture)
