@@ -1,6 +1,6 @@
 module github.com/kubex-ecosystem/getl
 
-go 1.26.2
+go 1.26.3
 
 require (
 	github.com/charmbracelet/lipgloss v1.1.0
@@ -8,7 +8,6 @@ require (
 	github.com/elgris/sqrl v0.0.0-20210727210741-7e0198b30236
 	github.com/fatih/color v1.18.0
 	github.com/go-sql-driver/mysql v1.9.3
-	github.com/godror/godror v0.50.0
 	github.com/kubex-ecosystem/logz v1.6.89
 	github.com/kubex-ecosystem/xtui v1.3.3
 	github.com/lib/pq v1.11.2
@@ -30,7 +29,6 @@ require (
 
 require (
 	filippo.io/edwards25519 v1.1.0 // indirect
-	github.com/VictoriaMetrics/easyproto v1.2.0 // indirect
 	github.com/atotto/clipboard v0.1.4 // indirect
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/boombuler/barcode v1.1.0 // indirect
@@ -43,9 +41,6 @@ require (
 	github.com/clipperhouse/displaywidth v0.11.0 // indirect
 	github.com/clipperhouse/uax29/v2 v2.7.0 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
-	github.com/go-logfmt/logfmt v0.6.1 // indirect
-	github.com/go-logr/logr v1.4.3 // indirect
-	github.com/godror/knownpb v0.3.0 // indirect
 	github.com/golang-sql/civil v0.0.0-20220223132316-b832511892a9 // indirect
 	github.com/golang-sql/sqlexp v0.1.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect

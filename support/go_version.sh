@@ -23,14 +23,14 @@ get_required_go_version() {
   go_mod_path="${go_mod_path:-${_ROOT_DIR:-$(git rev-parse --show-toplevel)}/go.mod}"
 
   if [[ ! -f "${go_mod_path}" ]]; then
-    echo "1.26.1" # fallback
+    echo "1.26.3" # fallback
     return 0
   fi
 
   # Extract go version from go.mod
   _VERSION_GO="$(awk '/^go / {print $2; exit}' "${go_mod_path}" || echo "")"
   if [[ -z "${_VERSION_GO:-}" ]]; then
-    echo "1.26.1" # fallback
+    echo "1.26.3" # fallback
   else
     echo "${_VERSION_GO:-}"
   fi
